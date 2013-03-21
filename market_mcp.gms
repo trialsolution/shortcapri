@@ -1,12 +1,19 @@
-*notes:
-*simplifications
-* 1: no distinction between RMS and RM. they all become R
-* no processing industry, no biofuels => demand is only humand consumption
-* tariffs are exogenous, only ad-valorem (see p_tarAdVal)
+$title shortcapri
+
+* Short, demonstrative version of the CAPRI market model
+*=======================================================
+
+* 2 products, 3 regions
+* supply functions derived from Normalized Quadratic profit functions
+* Generalized Leontief demand system
+* Two stage Armington (CES formulation)
+* No distinction between RMS and RM regions. They all become R
+* No processing industry, no feed, no biofuels... => demand is only humand consumption
+* Tariffs are exogenous, only ad-valorem (see p_tarAdVal)
 
 
 * DECLARATIONS, MODEL DEFINITION
-
+* ==============================
 
 sets
         R     'regions' /R1, R2, R3/
@@ -386,6 +393,46 @@ model m_GlobalMarket_nlp /
 /;
 
 
+model m_GlobalMarket_cns /
+
+* Behavioural part
+*-----------------
+*          Demand system: Generalised Leontief form
+           GlDemandFS_
+           GLDemandGS_
+           GLDemandGiS_
+           XiS_
+*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
+           ProdNQ_
+
+
+* Armington system
+*-----------------
+*         CES share equations
+           arm2QuantShares_
+           domSalesShares_
+           importShares_
+*          value equations
+           arm1Val_
+           arm2Val_
+
+* Balances
+*---------
+           ArmBal1_
+           SupBalM_
+           expQuant_
+
+* Price linkages
+*---------------
+           PPri_
+           impPrice_
+           CPRI_
+
+/;
+
+
+
+
 * INPUT DATA
 option seed=1234;
 
@@ -471,10 +518,7 @@ p_rhoArm1(R,XX) = 8;
 
 
 * starting values for model variables
-
-
-
-
+* ===================================
 
     v_tradeFlows.l(R,R1,XX) = p_tradeFlows(R,R1,XX,"Cur");
     v_tradeFlows.fx(r,r,XX) = 0;
@@ -493,15 +537,12 @@ p_rhoArm1(R,XX) = 8;
     v_expQuant.L(R,xX)= sum(R1 $ (not sameas(r,r1)), p_tradeFlows(R1,R,XX,"Cur"));
     v_consPrice.L(R,XX) = DATA(R,"CPRI",XX,"CUR");
     v_consPrice.fx(R,"inpe") = DATA(R,"CPRI","inpe","CUR");
+    v_prodQuant.L(R,XX) = data(R,"PROD",XX,"CUR");
 
 
 
-     v_prodQuant.L(R,XX) = data(R,"PROD",XX,"CUR");
-
-
-* CALIBRATION (WITH TEST)
-
-
+* CALIBRATION (WITH TESTS)
+* =======================
 
 parameters
          p_elasDem(R,XX1,YY1) "demand elasticities"
@@ -514,9 +555,9 @@ $include 'calibrate_demand_elasticities.gms'
 $include 'calibrate_supply_elasticities.gms'
 
 
-*$stop
-
 * calibrate producer price margins
+* --------------------------------
+
     pv_prodPriceMarg.fx(R,XX) $ DATA(R,"Prod",XX,"CUR")
 
    =  [v_prodPrice.L(R,XX) -  (DATA(R,"AREP",XX,"CUR")/DATA(R,"Yild",XX,"CUR")) $ DATA(R,"Yild",XX,"CUR")]
@@ -527,6 +568,8 @@ $include 'calibrate_supply_elasticities.gms'
 
 
 * Calibrate the distribution parameters of the Armington share equations
+* ----------------------------------------------------------------------
+
    p_dpCESTrade(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"Cur") and (not sameas(R,R1)))
 
          = v_tradeFlows.l(R,R1,XX)/(  v_arm2Quant.l(R,XX)
@@ -548,6 +591,8 @@ $include 'calibrate_supply_elasticities.gms'
 
 
 * test the calibration of the Armington system
+* --------------------------------------------
+
 parameter p_checkArmington;
 
 p_checkArmington(R," ",XX,"domsales")
@@ -578,6 +623,8 @@ display "check Armington system", p_checkArmington;
 
 
 * shift the supply function to observed "prod"
+* --------------------------------------------
+
   p_cnstNQSupp(R,XX) $ DATA(R,"Prod",XX,"CUR")
     = DATA(R,"Prod",XX,"CUR")
            - SUM( YY1 $ (DATA(R,"PPri",YY1,"CUR") and (not sameas(YY1,"INPE"))),
@@ -611,6 +658,8 @@ display "check NQ production function calibratin", p_checkProdNQ;
 
 
 * test the calibration of the demand system
+* -----------------------------------------
+
 parameter p_checkDemand;
 
 *  --  these are the X_i's
@@ -650,9 +699,15 @@ display "check the initialization of the demand system", p_checkDemand;
 $batinclude 'save_results.gms' '"BAS"'
 
 
-
+* MCP formulation
 solve m_GlobalMarket using mcp;
+
+* NLP formulation
 *solve m_GlobalMarket_nlp maximizing v_dummy using nlp;
+
+* CNS formulation
+*solve m_GlobalMarket_cns using cns;
+
 
 
 * store the result of the test run on 'CAL'
@@ -688,8 +743,14 @@ display "check calibration test run", p_checkPrices,p_checkBalances;
  p_doubleZero("R2","R1",XX,"CUR")  = 1;
 
 
+* MCP formulation
 solve m_GlobalMarket using mcp;
 
+* NLP formulation
+*solve m_GlobalMarket_nlp maximizing v_dummy using nlp;
+
+* CNS formulation
+*solve m_GlobalMarket_cns using cns;
 
 * save scenario results on "cur"
 $batinclude 'save_results.gms' '"CUR"'
