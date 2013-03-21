@@ -20,26 +20,17 @@ p_oriElas(R,XX,XX) = -0.1;
 
 parameter p_budgetShare(R,XX1);
 
-$ontext
-table p_budgetShare(R,XX1)
 
-         X1      X2    INPE
-R1       .2      .1     .7
-R2       .15     .1     .75
-R3       .1      .18    .72
-;
-$offtext
-
-
-* calculate the respective parameters of the GL demand system
-
+* Calculate the respective parameters of the GL demand system
+* this is called 'trimming' in CAPRI
+* ===========================================================
 
 *following taken mostly from trim_elas_decl.gms
 
 
 * --------------------------------------------------------------------------------------
 *
-*                 (2) Elasticity trimming
+*                 DECLARATIONS
 *
 * --------------------------------------------------------------------------------------
 *
@@ -193,36 +184,6 @@ $offtext
  Model m_trimDem "Calibration model for Generalized Leontief demand system"
                    / F_,G_,GI_,Xi_,DP_,Gij_,FitElas_,homog_,Addi_/;
 
-$ontext
- model m_trimDem_mcp
-  / F_.v_GLparF
-    G_.v_GLparG
-    Gij_.v_GLparGij
-    Gi_.v_GLDemGi
-    Xi_.v_GLparD
-
-* except (ince)
-    DP_.v_ela
-
-* (ince)
-    DY_.v_ela
-/;
-
-if v_ela is fixed
- model m_trimDem_mcp
-  / F_.v_GLparF
-    G_.v_GLparG
-    Gij_.v_B
-    Gi_.v_GLDemGi
-    Xi_.v_GLparD
-
-* except (ince)
-    DP_.v_GLDemGij
-/;
-
-
-$offtext
-
 
  m_trimDem.Limcol   = 0;
  m_trimDem.Limrow   = 0;
@@ -231,13 +192,8 @@ $offtext
  m_trimDem.Iterlim   = 10000;
 
 
-
-
-
-
-
 * CALIBRATION STARTS
-
+* ==================
 
 
 * price converted to eur per kg
@@ -402,15 +358,6 @@ $offtext
 parameter store_px;
 
          store_px(R,XX1,"cons_per_head") = p_qx(R,XX1);
-
-
-display "check if the B matrix is upper triangular", p_pbGL;
-
-display "check q_x quantities in demand system trimming", p_qx;
-display "check consumer prices in demand system trimming", p_price;
-display "check consumption at current prices", v_GLDemF.L, v_GLDemG.L, v_GLDemGi.L, v_GLDemGij.L, p_valueSum, v_GLparD.L;
-
-
 
 
 * Note that the numerical solution for V_B does not provide a completely symmetric matrix

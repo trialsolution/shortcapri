@@ -1,4 +1,12 @@
 
+* DECLARATIONS
+* ============
+
+
+* Note that the  calibration uses equations/variables/parameters defined in 'calibrate_demand_elasticities.gms'
+* in CAPRI the declarations are in one file
+
+
 variables
      v_hess(R,XX1,YY1)             "Hessian or marginal effects"
      V_LU(R,XX1,YY1)               "Lower upper cholesky decomp"
@@ -190,7 +198,7 @@ equations
 
 
 
-display "check supply trimming", v_ela.l, v_hess.l, v_lu.l;
+*display "check supply trimming", v_ela.l, v_hess.l, v_lu.l;
 
      Solve m_trimElas Using NLP Minimizing v_obje;
 
