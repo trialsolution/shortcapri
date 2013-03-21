@@ -1,0 +1,11 @@
+# GAMS listing and temp files #
+###############################
+
+*.lst
+*.lxi
+*.gdx
+*.gpr
+*.log
+*.~gm
+
+
