@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Short version of the CAPRI market module : An extremely simplified version of the CAPRI market module" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Short version of the CAPRI market module</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/trialsolution/shortcapri">View on GitHub</a>
+
+          <h1 id="project_title">Short version of the CAPRI market module</h1>
+          <h2 id="project_tagline">An extremely simplified version of the CAPRI market module</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/trialsolution/shortcapri/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/trialsolution/shortcapri/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h3>Welcome</h3>
+
+<p>The <em>shortcapri</em> project is about developing a simple, demonstrative example for the CAPRI market model. We aimed at creating the simplest structure possible, making as many simplifications as we could. E.g. the current structure has only two products, three regions, no processing and no feeds. But it still can be useful because it includes:</p>
+
+<ul>
+<li>similar nested set definitions as in CAPRI</li>
+<li>the same variable/equation/parameter... names</li>
+<li>the same Generalized Leontief demand system</li>
+<li>the same normalized quadratic type for supply functions (although without the fudging for negative values)</li>
+<li>the same two stage Armington approach for trade</li>
+<li>similar linkages between market/Armington/consumer/producer prices</li>
+<li>the same approach for calibrating the price elasticities of human demand</li>
+<li>the same approach for calibrating the price elasticities of supply</li>
+</ul><h3>Extra features</h3>
+
+<p>The model is formulated in three equivalent ways: as an MCP, NLP and CNS model. Remember, we solve a (squared) system of equations using the complementarity conditions. The MCP formulation shows explicitely the equation-variable pairs. The NLP formulation is the one used in CAPRI. The CNS is just another possibility in GAMS to solve the system of equation. All three should deliver the same result...</p>
+
+<p>The code contains lengthy routines for checking the calibration. I think it's useful to emphasize which parameters are calibrated and how...</p>
+
+<h3>Installation</h3>
+
+<p>Just download the files (or clone the repository with git). The main file is <em>market_mcp.gms</em>; that's the one you want to run.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Short version of the CAPRI market module maintained by <a href="https://github.com/trialsolution">trialsolution</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
