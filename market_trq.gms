@@ -445,7 +445,7 @@ p_rhoArm1(R,XX) = 8;
 
 * Policy settings...
 * tariffs
- p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 10;
+ p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 25;
 * FTAs
  p_doubleZero(R,R1,XX,"CUR")  = 0;
 
@@ -739,8 +739,8 @@ display "check calibration test run", p_checkPrices,p_checkBalances;
 * SCENARIO (FTA between R1 and R2)
 *================================
 
- p_doubleZero("R1","R2",XX,"CUR")  = 1;
- p_doubleZero("R2","R1",XX,"CUR")  = 1;
+ p_doubleZero("R1","R2","X1","CUR")  = 1;
+ p_doubleZero("R2","R1","X1","CUR")  = 1;
 
 
 * MCP formulation
@@ -752,6 +752,342 @@ solve m_GlobalMarket using mcp;
 * CNS formulation
 *solve m_GlobalMarket_cns using cns;
 
-* save scenario results on "cur"
-$batinclude 'save_results.gms' '"CUR"'
+* save scenario results on "sim_1"
+$batinclude 'save_results.gms' '"SIM_1"'
 
+
+
+
+*=============================================
+* introduce endogenous tariffs under TRQ
+* 2 ways of doing it:
+* (1) with sigmoid function
+* (2) by orthogonality constraints in MCP
+*=============================================
+
+parameter
+        p_trqBilat(R,R,XX,*,*) "bilateral TRQ regimes"
+;
+
+variable
+        v_tariff(R,R,XX)  "applied tariff rate (ad valorem)"
+;
+
+equation
+        impPrice_trq_(R,R,XX)   "import price with endogenous applied tariff rates"
+;
+
+impPrice_trq_(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"CUR") and (not SAMEAS(R,R1))) ..
+
+     v_impPrice(R,R1,XX)/(p_impPrice(R,R1,XX,"CUR")+1)   =E=
+*
+
+       (v_marketPrice(R1,XX))
+*       --- add valorem tariff
+          *  [ 1. + 0.01 * v_tariff(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]
+         /(p_impPrice(R,R1,XX,"CUR")+1);
+
+
+*$goto orthogonal
+
+equation
+        trq_sigmoid_(R,R,XX) "calculates endogenous multiplier (0,1) ==> endogenous applied tariff rate under TRQ"
+        applied_tariff_(R,R,XX) "applied tariff rates"
+;
+
+variable
+        v_trq_multiplier(R,R,XX) "endogenous multiplier (0,1) ==> endogenous applied tariff rate under TRQ"
+;
+
+
+
+parameter sigmoid_slope(R,R,XX) "slope term of the sigmoid function (to ease numerical solution)";
+
+sigmoid_slope(R,R1,XX) = 1;
+
+
+
+
+trq_sigmoid_(R,R1,XX) $ [p_trqBilat(R,R1,XX,"trqnt","cur")  $  p_tradeFlows(R,R1,XX,"CUR")] ..
+
+         v_trq_multiplier(R,R1,XX)
+                          =e= sigmoid[ sigmoid_slope(R,R1,XX) * (v_tradeFlows(R,R1,XX) - p_trqBilat(R,R1,XX,"trqnt","cur")) / p_trqBilat(R,R1,XX,"trqnt","cur")];
+
+
+applied_tariff_(R,R1,XX) $ [p_trqBilat(R,R1,XX,"trqnt","cur")  $  p_tradeFlows(R,R1,XX,"CUR")] ..
+
+          v_tariff(R,R1,XX) =e= p_trqBilat(R,R1,XX,"taPref","cur")
+                              + [v_trq_multiplier(R,R1,XX) * (p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur"))];
+
+
+* modified model under        trq regime
+
+model m_GlobalMarket_trq /
+*          Demand system: Generalised Leontief form
+           GlDemandFS_.v_GLDemandFS,
+           GLDemandGS_.v_GLDemandGS,
+           GLDemandGiS_.v_GLDemandGiS,
+           XiS_.v_consQuant,
+
+*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
+           ProdNQ_.V_prodQuant,
+
+*         CES share equations
+           arm2QuantShares_.v_Arm2Quant,
+           domSalesShares_.v_domSales,
+           importShares_.v_tradeFlows,
+*          value equations
+           arm1Val_.v_Arm1Price,
+           arm2Val_.v_Arm2Price,
+
+*         balances
+           ArmBal1_.v_Arm1Quant,
+           SupBalM_.v_marketPrice,
+           expQuant_.v_expQuant,
+
+*         price linkages
+           PPri_.v_prodPrice,
+           impPrice_trq_.v_impPrice,
+           CPRI_.v_consPrice,
+
+*         TRQ instruments
+          trq_sigmoid_.v_trq_multiplier,
+          applied_tariff_.v_tariff
+
+/;
+
+
+
+* we assume that the baseline tariffs are the same as with the original model
+* => no need for re-calibration...
+
+
+* === check if the model is still calibrated
+
+* no FTAs in baseline (revert scenario)
+ p_doubleZero("R1","R2",XX,"CUR")  = 0;
+ p_doubleZero("R2","R1",XX,"CUR")  = 0;
+
+
+* === initialize new variables (baseline values)
+v_tariff.L(R,R1,XX) = p_tarAdVal(R,R1,XX);
+
+* --- assume an (arbitrary) fill rate in the baseline between 'R1' and 'R3'; let it be a small underfill
+p_trqBilat('R1','R3',XX,"trqnt","cur") =   p_tradeFlows('R1','R3',XX,"Cur") * 1.03;
+*p_trqBilat('R3','R1',XX,"trqnt","cur") =   p_tradeFlows('R3','R1',XX,"Cur") * 1.03;
+
+* --- following the Bouet et al. method it follows that the applied rate is an arithmetic average of MFN and Pref
+*p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) / 2;
+p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  0;
+p_trqBilat(R,R1,XX,"taMFN","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * 3;
+
+
+
+v_trq_multiplier.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+                = (v_tariff.L(R,R1,XX) - p_trqBilat(R,R1,XX,"taPref","cur"))
+                              / (p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur"));
+
+* note that the inverse of the sigmoid function is the logit(x) = log(x) - log(1-x)
+*! note that if the multiplier=.5 then the slope becomes zero
+         sigmoid_slope(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+                 = { log(v_trq_multiplier.L(R,R1,XX)) - log(1 - v_trq_multiplier.L(R,R1,XX))  }
+                 / [(p_tradeFlows(R,R1,XX,"cur") - p_trqBilat(R,R1,XX,"trqnt","cur")) / p_trqBilat(R,R1,XX,"trqnt","cur")];
+
+* fix those tariffs without TRQ
+v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1,XX);
+
+
+* MCP formulation
+solve m_GlobalMarket_trq using mcp;
+
+
+* store the result of the test run on 'CAL'
+$batinclude 'save_results.gms' '"CAL2"'
+
+
+* check if the test run gave back the calibration values
+parameter p_checkPrices, p_checkBalances;
+
+      p_checkBalances(R,XX,"diff_to_data","HCON") = v_consQuant.L(R,XX) - data(R,"hcon",XX,"cur") ;
+      p_checkBalances(R,XX,"diff_to_data","PROD") = v_prodQuant.L(R,XX) - data(R,"prod",XX,"cur") ;
+      p_checkBalances(R,XX,"diff_to_data","Exports") = v_expQuant.L(R,XX) - data(R,"Exports",XX,"cur");
+
+
+       p_checkPrices(R,XX,"diff_to_data","CPRI") = v_consPrice.L(R,XX) - data(R,"CPRI",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","PPRI") = v_prodPrice.L(R,XX) - data(R,"PPRI",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","PMRK") = v_marketPrice.L(R,XX) - data(R,"PMRK",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","ARM1P") = v_arm1Price.L(R,XX) - data(R,"arm1P",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","ARM2P") = v_arm2Price.L(R,XX) - data(R,"arm2P",XX,"cur");
+
+
+display "check calibration test run", p_checkPrices,p_checkBalances;
+
+
+
+
+* ------------
+* let's repeat the FTA scneario but now under the TRQ regime!
+* ------------
+
+
+ p_doubleZero("R1","R2","X1","CUR")  = 1;
+ p_doubleZero("R2","R1","X1","CUR")  = 1;
+
+* MCP formulation
+solve m_GlobalMarket_trq using mcp;
+
+* save scenario results on "sim_trq"
+$batinclude 'save_results.gms' '"sim_trq"'
+
+
+
+$label orthogonal
+* ----------------
+* introduce endogenous tariff under TRQ with the orthogonality conditions approach
+* ==================
+
+variables
+         v_import_in(R,R,XX) "in quota imports"
+         v_import_out(R,R,XX) "out of quota imports"
+         v_quota_premium_rate(R,R,XX) "quota premium rate"
+;
+
+equations
+         import_identity_(R,R,XX) "imports equals inquota plus out of quota"
+         regime_underfill_(R,R,XX)  "upper bound on in quota trade"
+         bound_premium_rate_(R,R,XX) "upper bound on premium rate"
+         applied_tariff_orth_(R,R,XX) "premium rate"
+;
+
+
+
+import_identity_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
+                 v_tradeFlows(R,R1,XX) =e=  v_import_in(R,R1,XX) + v_import_out(R,R1,XX);
+
+regime_underfill_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
+           v_import_in(R,R1,XX) =l= p_trqBilat(R,R1,XX,"trqnt","cur") ;
+
+bound_premium_rate_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
+           v_quota_premium_rate(R,R1,XX) =l=  p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur");
+
+
+applied_tariff_orth_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
+            v_tariff(R,R1,XX)   =e=   p_trqBilat(R,R1,XX,"taPref","cur") + v_quota_premium_rate(R,R1,XX) ;
+
+
+
+* modified model under        trq regime --- orthogonality conditions
+
+model m_GlobalMarket_orth /
+*          Demand system: Generalised Leontief form
+           GlDemandFS_.v_GLDemandFS,
+           GLDemandGS_.v_GLDemandGS,
+           GLDemandGiS_.v_GLDemandGiS,
+           XiS_.v_consQuant,
+
+*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
+           ProdNQ_.V_prodQuant,
+
+*         CES share equations
+           arm2QuantShares_.v_Arm2Quant,
+           domSalesShares_.v_domSales,
+           importShares_.v_tradeFlows,
+*          value equations
+           arm1Val_.v_Arm1Price,
+           arm2Val_.v_Arm2Price,
+
+*         balances
+           ArmBal1_.v_Arm1Quant,
+           SupBalM_.v_marketPrice,
+           expQuant_.v_expQuant,
+
+*         price linkages
+           PPri_.v_prodPrice,
+           impPrice_trq_.v_impPrice,
+           CPRI_.v_consPrice,
+
+*         TRQ instruments
+          applied_tariff_orth_.v_tariff,
+          import_identity_.v_import_in,
+          regime_underfill_.v_quota_premium_rate,
+          bound_premium_rate_.v_import_out
+/;
+
+
+
+
+* === check if the model is still calibrated
+
+* no FTAs in baseline (revert scenario)
+ p_doubleZero("R1","R2",XX,"CUR")  = 0;
+ p_doubleZero("R2","R1",XX,"CUR")  = 0;
+
+
+* === initialize new variables (baseline values)
+v_tariff.L(R,R1,XX) = p_tarAdVal(R,R1,XX);
+
+* --- assume an (arbitrary) fill rate in the baseline between 'R1' and 'R3'; let it be a small underfill
+p_trqBilat('R1','R3',XX,"trqnt","cur") =   p_tradeFlows('R1','R3',XX,"Cur") * 1.03;
+p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  0;
+p_trqBilat(R,R1,XX,"taMFN","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * 3;
+
+
+v_quota_premium_rate.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")    =  v_tariff.L(R,R1,XX) -  p_trqBilat(R,R1,XX,"taPref","cur");
+v_quota_premium_rate.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur") ) = 0  ;
+
+
+v_import_in.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+            = min(p_tradeFlows(R,R1,XX,"cur"), p_trqBilat(R,R1,XX,"trqnt","cur"));
+
+v_import_in.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = 0;
+
+v_import_out.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+            = p_tradeFlows(R,R1,XX,"cur") - v_import_in.L(R,R1,XX);
+
+v_import_out.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = 0;
+
+
+* fix those tariffs without TRQ
+v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1,XX);
+
+
+* MCP formulation
+solve m_GlobalMarket_orth using mcp;
+
+
+* store the result of the test run on 'CAL'
+$batinclude 'save_results.gms' '"CAL_orth"'
+
+
+* check if the test run gave back the calibration values
+parameter p_checkPrices, p_checkBalances;
+
+      p_checkBalances(R,XX,"diff_to_data","HCON") = v_consQuant.L(R,XX) - data(R,"hcon",XX,"cur") ;
+      p_checkBalances(R,XX,"diff_to_data","PROD") = v_prodQuant.L(R,XX) - data(R,"prod",XX,"cur") ;
+      p_checkBalances(R,XX,"diff_to_data","Exports") = v_expQuant.L(R,XX) - data(R,"Exports",XX,"cur");
+
+
+       p_checkPrices(R,XX,"diff_to_data","CPRI") = v_consPrice.L(R,XX) - data(R,"CPRI",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","PPRI") = v_prodPrice.L(R,XX) - data(R,"PPRI",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","PMRK") = v_marketPrice.L(R,XX) - data(R,"PMRK",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","ARM1P") = v_arm1Price.L(R,XX) - data(R,"arm1P",XX,"cur");
+       p_checkPrices(R,XX,"diff_to_data","ARM2P") = v_arm2Price.L(R,XX) - data(R,"arm2P",XX,"cur");
+
+
+display "check calibration test run", p_checkPrices,p_checkBalances;
+
+
+
+* ------------
+* let's repeat the FTA scneario but now under the TRQ regime!
+* ------------
+
+
+ p_doubleZero("R1","R2","X1","CUR")  = 1;
+ p_doubleZero("R2","R1","X1","CUR")  = 1;
+
+* MCP formulation
+solve m_GlobalMarket_orth using mcp;
+
+* save scenario results on "sim_orth"
+$batinclude 'save_results.gms' '"sim_orth"'
