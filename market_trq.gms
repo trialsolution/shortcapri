@@ -696,7 +696,7 @@ display "check the initialization of the demand system", p_checkDemand;
 
 
 * store the initialized model on 'bas'
-$batinclude 'save_results.gms' '"BAS"'
+$batinclude 'save_results.gms' '"BAS"' 'p_tarAdval'
 
 
 * MCP formulation
@@ -711,7 +711,7 @@ solve m_GlobalMarket using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL"'
+$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
 
 
 * check if the test run gave back the calibration values
@@ -753,7 +753,7 @@ solve m_GlobalMarket using mcp;
 *solve m_GlobalMarket_cns using cns;
 
 * save scenario results on "sim_1"
-$batinclude 'save_results.gms' '"SIM_1"'
+$batinclude 'save_results.gms' '"SIM_1"' 'p_tarAdval'
 
 
 
@@ -913,7 +913,7 @@ solve m_GlobalMarket_trq using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL2"'
+$batinclude 'save_results.gms' '"CAL2"' 'v_tariff.L'
 
 
 * check if the test run gave back the calibration values
@@ -950,14 +950,13 @@ p_trq_fillrate(R,R1,XX,"CAL2") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 solve m_GlobalMarket_trq using mcp;
 
 * save scenario results on "sim_trq"
-$batinclude 'save_results.gms' '"sim_trq"'
+$batinclude 'save_results.gms' '"sim_trq"' 'v_tariff.L'
 
 p_trq_fillrate(R,R1,XX,"sim_trq") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
 
 
-$stop
 
 $label orthogonal
 * ----------------
@@ -986,7 +985,7 @@ regime_underfill_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
            v_import_in(R,R1,XX) =l= p_trqBilat(R,R1,XX,"trqnt","cur") ;
 
 bound_premium_rate_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
-           v_quota_premium_rate(R,R1,XX) =l=  p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur");
+           p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur") =g= v_quota_premium_rate(R,R1,XX) ;
 
 
 applied_tariff_orth_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
@@ -1044,15 +1043,24 @@ model m_GlobalMarket_orth /
 * === initialize new variables (baseline values)
 v_tariff.L(R,R1,XX) = p_tarAdVal(R,R1,XX);
 
-* --- assume an (arbitrary) fill rate in the baseline between 'R1' and 'R3'; let it be a small underfill
-p_trqBilat('R1','R3',XX,"trqnt","cur") =   p_tradeFlows('R1','R3',XX,"Cur") * 1.03;
+* --- the fill rate must be 100% so the premium rate can be chosen arbitrarily
+p_trqBilat('R1','R3',XX,"trqnt","cur") =   p_tradeFlows('R1','R3',XX,"Cur") * 1.;
 p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  0;
 p_trqBilat(R,R1,XX,"taMFN","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * 3;
 
 
+
+
+v_quota_premium_rate.LO(R,R1,XX) = 0;
+v_quota_premium_rate.UP(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqNT","cur")
+                      = p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur");
+
 v_quota_premium_rate.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")    =  v_tariff.L(R,R1,XX) -  p_trqBilat(R,R1,XX,"taPref","cur");
 v_quota_premium_rate.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur") ) = 0  ;
 
+
+v_import_in.LO(R,R1,XX) = 0;
+v_import_out.LO(R,R1,XX) = 0;
 
 v_import_in.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
             = min(p_tradeFlows(R,R1,XX,"cur"), p_trqBilat(R,R1,XX,"trqnt","cur"));
@@ -1074,7 +1082,7 @@ solve m_GlobalMarket_orth using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL_orth"'
+$batinclude 'save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
 
 * check if the test run gave back the calibration values
@@ -1094,6 +1102,8 @@ parameter p_checkPrices, p_checkBalances;
 
 display "check calibration test run", p_checkPrices,p_checkBalances;
 
+p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
+               =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
 
 * ------------
@@ -1108,4 +1118,7 @@ display "check calibration test run", p_checkPrices,p_checkBalances;
 solve m_GlobalMarket_orth using mcp;
 
 * save scenario results on "sim_orth"
-$batinclude 'save_results.gms' '"sim_orth"'
+$batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
+
+p_trq_fillrate(R,R1,XX,"sim_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
+               =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");

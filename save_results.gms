@@ -20,3 +20,7 @@
 
          p_results(R,R1,"trade",XX,%1)  = v_tradeFlows.L(R,R1,XX);
          p_results(R,"","DSales",XX,%1)  = v_domSales.L(R,XX);
+
+* --- tariffs are either endogenous or exogenous
+         p_results(R,R1,"tariff",XX,%1) =   %2(R,R1,XX);
+         
