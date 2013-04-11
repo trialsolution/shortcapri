@@ -767,10 +767,13 @@ $batinclude 'save_results.gms' '"SIM_1"'
 
 parameter
         p_trqBilat(R,R,XX,*,*) "bilateral TRQ regimes"
+        p_trq_fillrate(R,R,XX,*) "fill rate of the TRQs"
+        p_premium_rate(R,R,XX)   "quota premium rate"
 ;
 
 variable
         v_tariff(R,R,XX)  "applied tariff rate (ad valorem)"
+
 ;
 
 equation
@@ -801,17 +804,20 @@ variable
 
 
 
-parameter sigmoid_slope(R,R,XX) "slope term of the sigmoid function (to ease numerical solution)";
+scalar sigmoid_slope "slope term of the sigmoid function (to make it steep enough)";
+parameter  p_sigmoid_calib(R,R1,XX) "calibration term of the sigmoid function";
 
-sigmoid_slope(R,R1,XX) = 1;
-
+sigmoid_slope = 1;
+p_sigmoid_calib(R,R1,XX) =0;
 
 
 
 trq_sigmoid_(R,R1,XX) $ [p_trqBilat(R,R1,XX,"trqnt","cur")  $  p_tradeFlows(R,R1,XX,"CUR")] ..
 
          v_trq_multiplier(R,R1,XX)
-                          =e= sigmoid[ sigmoid_slope(R,R1,XX) * (v_tradeFlows(R,R1,XX) - p_trqBilat(R,R1,XX,"trqnt","cur")) / p_trqBilat(R,R1,XX,"trqnt","cur")];
+                          =e= sigmoid[ sigmoid_slope * (v_tradeFlows(R,R1,XX) + p_sigmoid_calib(R,R1,XX) - p_trqBilat(R,R1,XX,"trqnt","cur") )
+                                                        / p_trqBilat(R,R1,XX,"trqnt","cur")
+                                       ];
 
 
 applied_tariff_(R,R1,XX) $ [p_trqBilat(R,R1,XX,"trqnt","cur")  $  p_tradeFlows(R,R1,XX,"CUR")] ..
@@ -882,16 +888,21 @@ p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  0;
 p_trqBilat(R,R1,XX,"taMFN","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * 3;
 
 
+p_premium_rate(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+               = [v_tariff.L(R,R1,XX) -  p_trqBilat(R,R1,XX,"taPref","cur")]
+                 / [  p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur") ];
+
 
 v_trq_multiplier.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
-                = (v_tariff.L(R,R1,XX) - p_trqBilat(R,R1,XX,"taPref","cur"))
-                              / (p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur"));
+                = p_premium_rate(R,R1,XX);
 
+* calibrate the sigmoid curves
 * note that the inverse of the sigmoid function is the logit(x) = log(x) - log(1-x)
-*! note that if the multiplier=.5 then the slope becomes zero
-         sigmoid_slope(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
-                 = { log(v_trq_multiplier.L(R,R1,XX)) - log(1 - v_trq_multiplier.L(R,R1,XX))  }
-                 / [(p_tradeFlows(R,R1,XX,"cur") - p_trqBilat(R,R1,XX,"trqnt","cur")) / p_trqBilat(R,R1,XX,"trqnt","cur")];
+         p_sigmoid_calib(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
+                 =
+                 { p_trqBilat(R,R1,XX,"trqnt","cur") * [log(p_premium_rate(R,R1,XX)) - log(1 - p_premium_rate(R,R1,XX))] / sigmoid_slope }
+                 + p_trqBilat(R,R1,XX,"trqnt","cur") - p_tradeFlows(R,R1,XX,"CUR");
+
 
 * fix those tariffs without TRQ
 v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1,XX);
@@ -923,6 +934,8 @@ parameter p_checkPrices, p_checkBalances;
 display "check calibration test run", p_checkPrices,p_checkBalances;
 
 
+p_trq_fillrate(R,R1,XX,"CAL2") $ p_trqBilat(R,R1,XX,"trqnt","cur")
+               =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
 
 * ------------
@@ -939,7 +952,12 @@ solve m_GlobalMarket_trq using mcp;
 * save scenario results on "sim_trq"
 $batinclude 'save_results.gms' '"sim_trq"'
 
+p_trq_fillrate(R,R1,XX,"sim_trq") $ p_trqBilat(R,R1,XX,"trqnt","cur")
+               =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
+
+
+$stop
 
 $label orthogonal
 * ----------------
