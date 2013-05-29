@@ -134,7 +134,6 @@ variables
            pv_prodPriceMarg(R,XX)          "price margin (calibrated)"
 
 
-           v_dummy
 
 ;
 
@@ -317,9 +316,6 @@ impPrice_(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"CUR") and (not SAMEAS(R,R1))) ..
 
 
 
-dummy.. v_dummy =e= 10;
-
-
 model m_GlobalMarket /
 *          Demand system: Generalised Leontief form
            GlDemandFS_.v_GLDemandFS,
@@ -350,85 +346,6 @@ model m_GlobalMarket /
 
 /;
 
-
-
-model m_GlobalMarket_nlp /
-
-* Behavioural part
-*-----------------
-*          Demand system: Generalised Leontief form
-           GlDemandFS_
-           GLDemandGS_
-           GLDemandGiS_
-           XiS_
-*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
-           ProdNQ_
-
-
-* Armington system
-*-----------------
-*         CES share equations
-           arm2QuantShares_
-           domSalesShares_
-           importShares_
-*          value equations
-           arm1Val_
-           arm2Val_
-
-* Balances
-*---------
-           ArmBal1_
-           SupBalM_
-           expQuant_
-
-* Price linkages
-*---------------
-           PPri_
-           impPrice_
-           CPRI_
-
-
-* dummy for NLP formulation
-           dummy
-/;
-
-
-model m_GlobalMarket_cns /
-
-* Behavioural part
-*-----------------
-*          Demand system: Generalised Leontief form
-           GlDemandFS_
-           GLDemandGS_
-           GLDemandGiS_
-           XiS_
-*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
-           ProdNQ_
-
-
-* Armington system
-*-----------------
-*         CES share equations
-           arm2QuantShares_
-           domSalesShares_
-           importShares_
-*          value equations
-           arm1Val_
-           arm2Val_
-
-* Balances
-*---------
-           ArmBal1_
-           SupBalM_
-           expQuant_
-
-* Price linkages
-*---------------
-           PPri_
-           impPrice_
-           CPRI_
-
-/;
 
 
 
@@ -790,7 +707,7 @@ impPrice_trq_(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"CUR") and (not SAMEAS(R,R1))) ..
           *  [ 1. + 0.01 * v_tariff(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]
          /(p_impPrice(R,R1,XX,"CUR")+1);
 
-
+* you can skip the sigmoid representation and go to the orthogonal constraints solution here
 *$goto orthogonal
 
 equation
@@ -807,7 +724,7 @@ variable
 scalar sigmoid_slope "slope term of the sigmoid function (to make it steep enough)";
 parameter  p_sigmoid_calib(R,R1,XX) "calibration term of the sigmoid function";
 
-sigmoid_slope = 1;
+sigmoid_slope = 400;
 p_sigmoid_calib(R,R1,XX) =0;
 
 
@@ -865,7 +782,7 @@ model m_GlobalMarket_trq /
 
 
 * we assume that the baseline tariffs are the same as with the original model
-* => no need for re-calibration...
+* => no need for a full re-calibration, only the sigmoid curve needs to be calibrated (see calculation below)
 
 
 * === check if the model is still calibrated
@@ -912,7 +829,7 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 solve m_GlobalMarket_trq using mcp;
 
 
-* store the result of the test run on 'CAL'
+* store the result of the test run in the p_results parameter
 $batinclude 'save_results.gms' '"CAL2"' 'v_tariff.L'
 
 
@@ -931,7 +848,7 @@ parameter p_checkPrices, p_checkBalances;
        p_checkPrices(R,XX,"diff_to_data","ARM2P") = v_arm2Price.L(R,XX) - data(R,"arm2P",XX,"cur");
 
 
-display "check calibration test run", p_checkPrices,p_checkBalances;
+display "test calibration, trq's with sigmoid function", p_checkPrices,p_checkBalances;
 
 
 p_trq_fillrate(R,R1,XX,"CAL2") $ p_trqBilat(R,R1,XX,"trqnt","cur")
@@ -939,7 +856,7 @@ p_trq_fillrate(R,R1,XX,"CAL2") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 
 
 * ------------
-* let's repeat the FTA scneario but now under the TRQ regime!
+* let's repeat the FTA scneario, but now the basline assumes TRQ regimes!
 * ------------
 
 
@@ -979,10 +896,10 @@ equations
 
 
 import_identity_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
-                 v_tradeFlows(R,R1,XX) =e=  v_import_in(R,R1,XX) + v_import_out(R,R1,XX);
+                 v_tradeFlows(R,R1,XX) =g=  v_import_in(R,R1,XX) + v_import_out(R,R1,XX);
 
 regime_underfill_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
-           v_import_in(R,R1,XX) =l= p_trqBilat(R,R1,XX,"trqnt","cur") ;
+           p_trqBilat(R,R1,XX,"trqnt","cur") - v_import_in(R,R1,XX) =g= 0;
 
 bound_premium_rate_(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")..
            p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur") =g= v_quota_premium_rate(R,R1,XX) ;
@@ -1035,7 +952,7 @@ model m_GlobalMarket_orth /
 
 * === check if the model is still calibrated
 
-* no FTAs in baseline (revert scenario)
+* no FTAs in baseline (revert scenario changes)
  p_doubleZero("R1","R2",XX,"CUR")  = 0;
  p_doubleZero("R2","R1",XX,"CUR")  = 0;
 
