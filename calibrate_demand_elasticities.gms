@@ -355,10 +355,6 @@ parameter p_budgetShare(R,XX1);
 
 
 
-parameter store_px;
-
-         store_px(R,XX1,"cons_per_head") = p_qx(R,XX1);
-
 
 * Note that the numerical solution for V_B does not provide a completely symmetric matrix
 * using only the upper triangular or the full matrix gives slightly different results
@@ -372,13 +368,14 @@ display check_calibrated_G;
 
 
 *  -- the parameters below will also be used in the calibration of the supply functions
-*     Let's store them then get rid of them
+*     So here we need to set them back to zero. But first Let's store them...
 parameter p_store;
 
          p_store(R,XX1,"p_qx","demand") = p_qx(R,XX1);
          p_store(R,XX1,"p_price","demand") = p_price(R,XX1);
          p_store(R," ","p_valueSum","demand") = p_valueSum(R);
 
+* .. and then use the option kills		 
     option kill=p_qx;
     option kill=p_price;
     option kill=p_valueSum;
