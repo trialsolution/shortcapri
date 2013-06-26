@@ -67,6 +67,10 @@ equations
 
 
 
+
+
+
+
  Model m_trimElas "Calibration model for normalized quadratic behavioural funcitons"
                    / Hess_,Chol_,FitElas_,HomogN_/;
 
@@ -107,7 +111,7 @@ equations
      V_LU.fx(R,XX1,YY1) $ ((NOT p_qx(R,XX1)) or (NOT p_qx(R,YY1))) = 0;
      V_LU.l(R,XX1,YY1)  $ (p_qx(R,XX1) and p_qx(R,YY1) and (XX1.pos LT YY1.pos))  = -0.001;
 *     V_LU.l(R,XX1,XX1)  $ p_qx(R,XX1) = Sqrt( MAX(1.E-04,abs(v_ela.l(R,XX1,XX1) * p_qx(R,XX1) / (p_priceN(R,XX1) + p_price(R,XX1) $ (not p_priceN(R,XX1))))));
-     V_LU.l(R,XX1,XX1)  $ p_qx(R,XX1) = Sqrt( MAX(1.E-04,abs(v_ela.l(R,XX1,XX1) * p_qx(R,XX1) / p_price(R,XX1)))) ;
+     V_LU.l(R,XX1,XX1)  $ p_qx(R,XX1) = Sqrt( MAX(1.E-04,abs(p_oriElas(R,XX1,XX1) * p_qx(R,XX1) / p_price(R,XX1)))) ;
 
      V_LU.UP(R,XX1,YY1) $ (p_qx(R,XX1) and p_qx(R,YY1)) =  SQRT(MAX(1.E-04,abs(p_qx(R,XX1)*p_qx(R,YY1))))*100;
      V_LU.lo(R,XX1,XX1) $ p_qx(R,XX1) = max(1.E-8,sqrt( abs( 0.01 * p_qx(R,XX1) / p_price(R,XX1))));
