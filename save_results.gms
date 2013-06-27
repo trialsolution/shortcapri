@@ -23,4 +23,5 @@
 
 * --- tariffs are either endogenous or exogenous
          p_results(R,R1,"tariff",XX,%1) =   %2(R,R1,XX);
-         
+$ifi %1 == "SIM_AVE"          p_results(R,R1,"tariff",XX,%1) $ p_doubleZero(R,R1,XX,"cur") = 0;
+
