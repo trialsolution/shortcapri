@@ -31,7 +31,9 @@ $include 'prep_market.gms'
 * --- some reporting parameters
 parameters
         p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
         p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_creation(R,XX,*)  "trade creation effects"
 ;
 
 parameter p_checkPrices, p_checkBalances;
@@ -55,6 +57,9 @@ $include 'calibration.gms'
  p_doubleZero("R1","R2",XX,"CUR")  = 1;
  p_doubleZero("R2","R1",XX,"CUR")  = 1;
 
+set fta_countries(R) /R1, R2/;
+set third_countries(R);
+third_countries(R) $ (not fta_countries(R)) = yes;
 
 * MCP formulation
 solve m_GlobalMarket using mcp;

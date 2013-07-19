@@ -1,3 +1,19 @@
+$ontext
+
+   CAPRI project
+
+   GAMS file : SAVE_RESULTS.GMS
+
+   @purpose  : saves scenario results in the reporting parameter p_results
+   @author   :
+   @date     : 19.07.13
+   @since    :
+   @refDoc   :
+   @seeAlso  :
+   @calledBy :
+
+$offtext
+********************************************************************************
 
 
 
@@ -18,8 +34,9 @@
          p_results(R,"","Prod",XX,%1)  =  v_prodQuant.L(R,XX);
 
 
-         p_results(R,R1,"trade",XX,%1)  = v_tradeFlows.L(R,R1,XX);
-         p_results(R,"","DSales",XX,%1)  = v_domSales.L(R,XX);
+         p_results(R,R1,"trade",XX,%1)    = v_tradeFlows.L(R,R1,XX);
+         p_results(R,"","Imports",XX,%1)  = sum(R1 $ (not sameas(R,R1)), v_tradeFlows.L(R,R1,XX));
+         p_results(R,"","DSales",XX,%1)   = v_domSales.L(R,XX);
 
 * --- tariffs are either endogenous or exogenous
          p_results(R,R1,"tariff",XX,%1) =   %2(R,R1,XX);
