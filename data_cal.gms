@@ -20,8 +20,8 @@ p_rhoArm1(R,XX) = 8;
 
 * Policy settings...
 * tariffs
- p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 25;
-* FTAs
+ p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 10;
+* No FTAs by defaults
  p_doubleZero(R,R1,XX,"CUR")  = 0;
 
 
