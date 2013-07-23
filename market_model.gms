@@ -4,7 +4,7 @@
 
 sets
         R     'regions' /R1, R2, R3/
-        XX_commodities    'commodities' / 'X1', 'X2'/
+        XX_commodities    'agricultural commodities' / 'X1', 'X2'/
         XX_add            'additional (non-agricultural) goods' / inpe "non-agricultural goods", ince "income elasticities"/
         basCalCur 'time' / "BAS", "CAL", "CUR"/
 
@@ -24,15 +24,15 @@ alias(XX,YY,ZZ);
 alias(XX1,YY1,ZZ1);
 
 parameters
-          data(*,*,*,*) 'capri data cube'
+           data(*,*,*,*)                           "an equivalent of the capri data cube (stores most of the balances and prices)"
 
 
            p_dpCESTrade(R,*,XX)
-           p_tradeFlows(R,R,XX,basCalCur)                "Physical import flows, destination first"
-           p_doubleZero(R,R,XX,basCalCur)                    "Double zero aggreements"
-           p_impPrice(R,R,XX,basCalCur)                     "import price"
+           p_tradeFlows(R,R,XX,basCalCur)          "Physical import flows, destination first"
+           p_doubleZero(R,R,XX,basCalCur)          "Double zero aggreements"
+           p_impPrice(R,R,XX,basCalCur)            "import price"
 
-          p_tarAdVal(R,R,XX)                      "Ad-valorem tariffs"
+           p_tarAdVal(R,R,XX)                      "Ad-valorem tariffs"
 
 
 *       parameters of the demand system
@@ -120,20 +120,21 @@ variables
            v_domSales(R,XX)                "Domestic sales [1000 tons]"
            pv_prodPriceMarg(R,XX)          "price margin (calibrated)"
 
-
+           v_flipflop
 
 ;
 
 positive variables v_tradeFlows, v_consPrice, v_prodPrice, v_marketPrice, v_Arm1Price, v_Arm2Price ;
 
 
-
+ dummy.. v_flipflop =e= 10;
 
 
 * Demand system
 *==============
 
-* consumer price is converted to per kg (*1.E-3); same during the calibration of the demand system
+* Note that consumer price is converted to per kg (*1.E-3): that's the numeraire
+*  same trick during the calibration of the demand system
 
 GLDemandFS_(R) ..
 
@@ -142,7 +143,8 @@ GLDemandFS_(R) ..
                              v_consPrice(R,XX1) * p_pdGL(R,XX1,"CUR")*1.E-3);
 
  GLDemandGS_(R) ..
-     v_GLDemandGS(R) =E= SUM( (XX1,YY1) $ p_pbGL(R,XX1,YY1,"CUR"),
+
+     v_GLDemandGS(R) =E= SUM( (XX1,YY1) $ (abs(p_pbGL(R,XX1,YY1,"CUR")) gt eps),
                                           p_pbGL(R,XX1,YY1,"CUR")
                                           * SQRT(v_consPrice(R,XX1)*v_consPrice(R,YY1)*1.E-6) );
 
@@ -150,7 +152,7 @@ GLDemandFS_(R) ..
                           $ DATA(R,"HCon",XX,"CUR"))  ..
 
      v_GLDemandGis(R,XX)
-                 =E= SUM( YY1 $ p_pbGl(R,XX,YY1,"CUR"),
+                 =E= SUM( YY1 $ (abs(p_pbGl(R,XX,YY1,"CUR")) gt eps),
                                      p_pbGL(R,XX,YY1,"CUR")
                                    * SQRT(v_consPrice(R,YY1) / data(R,"cpri",xx,"cur")) * sqrt(data(R,"cpri",xx,"cur")/v_consPrice(R,XX)));
 
@@ -159,9 +161,17 @@ GLDemandFS_(R) ..
 *
        v_consQuant(R,XX)
      =E=
-       ((v_GLDemandGis(R,XX)/v_GLDemandGS(R)
+         [
+*      G_i/G * (Y-F)
+         v_GLDemandGis(R,XX)/v_GLDemandGS(R)
            * ( DATA(R,"Ince","Levl","CUR")/DATA(R,"INHA","LEVL","CUR") - v_GLDemandFS(R))
-              + p_pdGL(R,XX,"CUR")) * DATA(R,"INHA","LEVL","CUR")) * 1.E-3  ;
+*      plus the consumption independent of prices and income
+              + p_pdGL(R,XX,"CUR")]
+
+*          times population
+              * DATA(R,"INHA","LEVL","CUR")
+*          conversion from kg to tons
+              * 1.E-3  ;
 
 * Supply
 *=======
@@ -332,5 +342,39 @@ model m_GlobalMarket /
            CPRI_.v_consPrice
 
 /;
+
+
+model m_GlobalMarket_nlp /
+*          Demand system: Generalised Leontief form
+           GlDemandFS_
+           GLDemandGS_
+           GLDemandGiS_
+           XiS_
+
+*          Supply: from a Normalised Quadratic profit function; linear in normalized prices
+           ProdNQ_
+
+*         CES share equations
+           arm2QuantShares_
+           domSalesShares_
+           importShares_
+*          value equations
+           arm1Val_
+           arm2Val_
+
+*         balances
+           ArmBal1_
+           SupBalM_
+           expQuant_
+
+*         price linkages
+           PPri_
+           impPrice_
+           CPRI_
+
+           dummy
+
+/;
+
 
 
