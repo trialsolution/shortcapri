@@ -17,8 +17,13 @@ $title shortcapri
 $include 'market_model.gms'
 
 
-* MARKET BALANCING (consistent data set at the calibration point)
-* ================
+* DATA INPUT
+*===========
+$include 'data_cal.gms'
+
+
+* MARKET BALANCING (consolidation, i.e. creating a consistent data set at the calibration point)
+* =============================================================================================
 $include 'data_cal.gms'
 
 
