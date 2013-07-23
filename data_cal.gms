@@ -109,7 +109,7 @@ parameters
 
 
 
-*$include 'calibrate_demand_elasticities.gms'
+
 
 * price converted to eur per kg
         p_price(R,XX)    =  DATA(R,"Cpri",XX,"CUR")/1000;
@@ -163,8 +163,17 @@ p_elasDem(R,"INPE","INCE") $ P_budgetShare(R,"INPE")
 p_elasDem(R,"INPE","INPE") = 0 - sum(YY1 $ (not sameas(YY1,"INPE")), p_elasDem(R,"INPE",YY1));
 
 
-* calculate the parameters of the GL demand system from the elasticities
-* set up a dummy NLP model to solve for the parameters of the GL demand system
+
+* calibrate the Generalized Leontief Expenditure system (and the resulting demand functions)
+* to the matrix of elasticities above
+*===========================================================================================
+
+* Note that the GL expenditure function is of a flexible functional form
+* => it can be approximate arbitrary differentiable demand functions to the first order.
+*
+* 
+* Technically: set up a dummy NLP model to solve for the parameters of the GL demand system
+*-------------------------------------------------------------------------------------------
 
  Variables
 
@@ -174,7 +183,7 @@ p_elasDem(R,"INPE","INPE") = 0 - sum(YY1 $ (not sameas(YY1,"INPE")), p_elasDem(R
      v_GLparD(R,XX1)               "Commitment parameter D of Generalized Leontief demand system"
      V_B(R,XX1,YY1)                "B parameter of Generalized Leontief demand system"
      v_GLDemGij(R,XX1,YY1)         "Second derivative of G term of Generalized Leontief demand system"
-     v_dummy
+     v_dummy                       "dummy objective"
 
 ;
 
