@@ -31,18 +31,18 @@ $offtext
        p_checkPrices(R,XX,"diff_to_data","ARM2P") = v_arm2Price.L(R,XX) - data(R,"arm2P",XX,"cur");
 
 
-if ( [sum( (R,XX), p_checkBalances(R,XX,"diff_to_data","HCON") + p_checkBalances(R,XX,"diff_to_data","PROD")
-                 + p_checkBalances(R,XX,"diff_to_data","Exports")) gt .5],
+if ( [sum( (R,XX), abs(p_checkBalances(R,XX,"diff_to_data","HCON")) + abs(p_checkBalances(R,XX,"diff_to_data","PROD"))
+                 + abs(p_checkBalances(R,XX,"diff_to_data","Exports"))) gt .5],
 
                abort "balances are not correctly calibrated", p_checkBalances;
 );
 
 
-if ( [sum( (R,XX),        p_checkPrices(R,XX,"diff_to_data","CPRI")
-                     +   p_checkPrices(R,XX,"diff_to_data","PPRI")
-                     +   p_checkPrices(R,XX,"diff_to_data","PMRK")
-                     +   p_checkPrices(R,XX,"diff_to_data","ARM1P")
-                     +  p_checkPrices(R,XX,"diff_to_data","ARM2P")) gt .5],
+if ( [sum( (R,XX),        abs(p_checkPrices(R,XX,"diff_to_data","CPRI"))
+                     +   abs(p_checkPrices(R,XX,"diff_to_data","PPRI"))
+                     +   abs(p_checkPrices(R,XX,"diff_to_data","PMRK"))
+                     +   abs(p_checkPrices(R,XX,"diff_to_data","ARM1P"))
+                     +   abs(p_checkPrices(R,XX,"diff_to_data","ARM2P"))) gt .5],
 
                abort "prices are not correctly calibrated", p_checkPrices;
 );

@@ -88,17 +88,7 @@ display "check the calibraiton of the NQ production functions", p_checkProdNQ;
 
 
 
-* setting starting values after calibration of the demand system
-* --------------------------------------------------------------
 
-     v_GLDemandFS.L(R) = SUM(XX1 $ p_pdGl(R,XX1,"CUR"), v_consPrice.L(R,XX1) * p_pdGL(R,XX1,"CUR")*1.E-3);
-
-     v_GLDemandGS.L(R) = SUM( (XX1,YY1) $ p_pbGL(R,XX1,YY1,"CUR"),
-                 p_pbGL(R,XX1,YY1,"CUR") * SQRT(v_consPrice.L(R,XX1)*v_consPrice.L(R,YY1)*1.E-6) );
-
-     v_GLDemandGis.L(R,XX1) $ (v_consPrice.L(R,XX1) gt eps) = SUM( YY1 $ p_pbGl(R,XX1,YY1,"CUR"),
-                                     p_pbGL(R,XX1,YY1,"CUR")
-                                     * SQRT(v_consPrice.L(R,YY1) / v_consPrice.L(R,XX1)));
 
 
 * test the calibration of the demand system
@@ -108,7 +98,9 @@ parameter p_checkDemand;
 
 *  --  these are the X_i's
        p_checkDemand(R,XX1,"Xi_pHead")
-        =   p_store(R,XX1,"p_qx","demand")
+        =
+        p_store(R,XX1,"p_qx","demand")
+*         data(r,"hcon",xx1,"cur") / data(r,"inha","levl","cur") *1000
              -
            {(v_GLDemandGis.L(R,XX1)/v_GLDemandGS.L(R)
            * ( DATA(R,"Ince","Levl","CUR")/DATA(R,"INHA","LEVL","CUR") - v_GLDemandFS.L(R))
@@ -124,6 +116,7 @@ parameter p_checkDemand;
 
 
        p_checkDemand(R,XX1,"consPrice") = v_consPrice.L(R,XX1) - p_store(R,XX1,"p_price","demand") * 1000;
+*       p_checkDemand(R,XX1,"consPrice") = v_consPrice.L(R,XX1) - data(R,"CPRI",XX1,"cur");
 
        p_checkDemand(R," ","Y") = p_store(R," ","p_valueSum","demand") - [DATA(R,"Ince","Levl","CUR")/DATA(R,"INHA","LEVL","CUR")];
 
@@ -141,19 +134,4 @@ display "check the initialization of the demand system", p_checkDemand;
 
 * store the initialized model on 'bas'
 $batinclude 'save_results.gms' '"BAS"' 'p_tarAdval'
-
-
-
-* TEST run, (see if solving the model with the initial points gives back the calibration point)
-* ---------
-
-
-* MCP formulation
-solve m_GlobalMarket using mcp;
-
-
-* store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
-
-$include 'test_calibration.gms'
 

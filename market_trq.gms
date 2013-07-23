@@ -29,10 +29,14 @@ $include 'data_prep.gms'
 $include 'data_cal.gms'
 
 
-
 * starting values for model variables
-* ===================================
+*-----------------------------------
 $include 'prep_market.gms'
+
+* CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
+* =======================
+parameter p_checkPrices, p_checkBalances;
+$include 'calibration.gms'
 
 
 * --- some reporting parameters
@@ -43,15 +47,40 @@ parameters
         p_trade_creation(R,XX,*)  "trade creation effects"
 ;
 
-parameter p_checkPrices, p_checkBalances;
 
 
-* CALIBRATION PHASE (WITH TESTS)
-* =======================
-$include 'calibration.gms'
+* RUN calibration test with the full system
+*=========================================
 
 
 
+* TEST run, (see if solving the model with the initial points gives back the calibration point)
+* ---------
+execute_unload "before_calibration.gdx";
+*    v_marketPrice.fx(R,XX)  =    v_marketPrice.l(R,XX);
+
+
+
+* check G
+parameter p_checkG;
+p_checkG(R) = SUM( (XX1,YY1) $ p_pbGL(R,XX1,YY1,"CUR"),
+                                          p_pbGL(R,XX1,YY1,"CUR")
+                                          * SQRT(v_consPrice.L(R,XX1)*v_consPrice.L(R,YY1)*1.E-6) );
+display "check G", p_checkG;
+
+
+
+
+
+*option iterlim=0;
+solve m_GlobalMarket using mcp;
+*solve m_GlobalMarket_nlp using nlp minimizing v_flipflop;
+
+
+* store the result of the test run on 'CAL'
+$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
+
+$include 'test_calibration.gms'
 
 
 
@@ -483,4 +512,3 @@ $batinclude 'report_trade_diversion.gms' 'sim_orth'
 * ====================================
 
 execute_unload 'results.gdx';
-

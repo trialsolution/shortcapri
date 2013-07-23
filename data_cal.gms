@@ -40,7 +40,9 @@ $offtext
 * ii) v_marketPrice => v_prodPrice
 *---------------------------------
 
-   p_impPrice(R,R1,XX,"CUR") = DATA(R1,"PMRK",XX,"CUR") *  [ 1. + 0.01 * p_tarAdVal(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]  ;
+*  transportation costs are not considered...
+    p_impPrice(R,R1,XX,"CUR") = DATA(R1,"PMRK",XX,"CUR") *  [ 1. + 0.01 * p_tarAdVal(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]  ;
+
 
     DATA(R,"Arm2P",XX,"CUR") =
              [SUM(R1 $ ((NOT SAMEAS(R,R1)) $ p_tradeFlows(R,R1,XX,"CUR")),
@@ -54,10 +56,10 @@ $offtext
                                + DATA(R,"ARM2P",XX,"CUR") * DATA(R,"Arm2",XX,"CUR"))
                                / DATA(R,"ARM1",XX,"CUR");
 
-     data(R,"CSE",XX,"cur") = 50.;
+     data(R,"CSE",XX,"cur") = 0.;
 
-   DATA(R,"CPRI",XX,"CUR") =  DATA(R,"ARM1P",XX,"CUR") + DATA(R,"CSE",XX,"CUR");
-   DATA(R,"Cpri","Inpe","cur") = 1000;
+    DATA(R,"CPRI",XX,"CUR") =  DATA(R,"ARM1P",XX,"CUR") + DATA(R,"CSE",XX,"CUR");
+
 
 
 * CALIBRATION OF THE DEMAND SYSTEM
@@ -118,4 +120,3 @@ parameter  p_oriElas(R,XX1,XX1)  "starting values for the elasticities";
 
 
 $include 'calibrate_NQ_supply.gms'
-

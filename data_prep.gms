@@ -29,8 +29,8 @@ option seed=1234;
 
 * Armington substitution elasticities
 *-----------------------------------
-p_rhoArm2(R,XX) = 10;
-p_rhoArm1(R,XX) = 8;
+p_rhoArm2(R,XX) = 5;
+p_rhoArm1(R,XX) = 2;
 
 
 
@@ -38,7 +38,7 @@ p_rhoArm1(R,XX) = 8;
 *-------------------
 
 * --- tariffs
-   p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 10;
+   p_tarAdVal(R,R1,XX) $ (not (sameas(r,r1))) = 25;
 * No FTAs by defaults
    p_doubleZero(R,R1,XX,"CUR")  = 0;
 
@@ -48,19 +48,34 @@ p_rhoArm1(R,XX) = 8;
 * data cube entries
 *------------------
 
-   DATA(R,"INHA","Levl","cur")= uniform(800,1000);
+* --- some general rules: quantities are in tons, inhabitants are in head,
+
+
+   DATA(R,"INHA","Levl","cur")=100;
 
 * income, i.e. observed expenditure (EUR/year)
 * includes also the expenditures for non-agricultural goods
 *---------------------------------------------
 
-   DATA(R,"Ince","Levl","cur")= uniform(8000,10000)*DATA(R,"INHA","Levl","cur");
+   DATA(R,"Ince","Levl","cur")= uniform(80000,100000)*DATA(R,"INHA","Levl","cur");
 
 
+* price settings
+*---------------
 
-   DATA(R,"PMRK",XX,"CUR") = 1000 * uniform(90,100) / 100;
-   DATA(R,"PPRI",XX,"CUR") = 900 * uniform(90,100) / 100;
+* INPE is the numeraire
+* the price of 1kg equals unity (here the prices are for tons)
+* note that consumer prices of the agricultural goods will be calculated from the import prices
    DATA(R,"PPRI","Inpe","cur") = 1000;
+   DATA(R,"Cpri","Inpe","cur") = 1000;
+
+* some random noise in market prices of agricultural goods (set lower than the numeraire)
+* necessary to better initialize the Armington system (price difference between domestic and imported goods)
+   DATA(R,"PMRK",XX,"CUR") = 1000 * uniform(80,90) / 100;
+
+* producer prices are lower than market prices with a minimum margin of 10%
+*   DATA(R,"PPRI",XX,"CUR") = min(DATA(R,"PMRK",XX,"CUR")*.9, 900 * uniform(90,100) / 100);
+   DATA(R,"PPRI",XX,"CUR") = 800 * uniform(80,90) / 100;
 
 * the producer price margin will be defined according to the above random sample (pv_prodPriceMarg)
 

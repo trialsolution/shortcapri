@@ -22,7 +22,6 @@ parameters
          p_budgetShare(R,XX1) "budget shares"
          p_qx(R,*)                    "Quantity produced or demanded"
          p_price(R,*)                 "Price"
-         p_valueShare(R,XX1)          "Value share"
          p_valueSum(R)                "Income or feed costs or revenues"
 ;
 
@@ -229,8 +228,9 @@ model GL_demandSystem /F_, G_, Gi_, Xi_, DP_, Gij_, dummyobj_/;
                                  (    V_B.l(R,XX1,ZZ1) $ ( XX1.pos LE ZZ1.pos )
                                     + V_B.l(R,ZZ1,XX1) $ ( XX1.pos GT ZZ1.pos ) ) * SQRT( p_price(R,ZZ1))) * p_price(R,XX1)**(-1.5)) $ SAMEAS(XX1,YY1);
 
-execute_unload "check.gdx";
 display p_valuesum, v_GLDemF.L, v_GLparD.L, p_qx, p_price;
+*execute_unload "check.gdx";
+*abort "stopped for debugging";
 
 
 solve GL_demandSystem using NLP maximizing v_dummy;
@@ -249,9 +249,9 @@ solve GL_demandSystem using NLP maximizing v_dummy;
 *     So here we need to set them back to zero. But first Let's store them...
 parameter p_store;
 
-         p_store(R,XX1,"p_qx","demand") = p_qx(R,XX1);
-         p_store(R,XX1,"p_price","demand") = p_price(R,XX1);
-         p_store(R," ","p_valueSum","demand") = p_valueSum(R);
+         p_store(R,XX1,"p_qx","demand")         = p_qx(R,XX1);
+         p_store(R,XX1,"p_price","demand")      = p_price(R,XX1);
+         p_store(R," ","p_valueSum","demand")   = p_valueSum(R);
 
 * .. and then use the option kills
     option kill=p_qx;
