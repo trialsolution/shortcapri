@@ -14,6 +14,9 @@ $title shortcapri
 
 $offlisting
 
+
+file modellog /modellog.txt/;
+
 * The Basic market model
 * ==============================
 $include 'market_model.gms'
@@ -44,6 +47,20 @@ $include  "trq_sigmoid.gms"
 $include  "trq_orthogonal.gms"
 
 
+* --- some reporting parameters related to trade scenario impacts
+parameters
+        p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_creation(R,XX,*)  "trade creation effects"
+
+;
+sets
+    fta_countries(R)   "countries negotiating an FTA" /R1, R2/
+    third_countries(R) "third countries with respect to the FTA"
+;
+
+third_countries(R) $ (not fta_countries(R)) = yes;
 
 
 
@@ -57,10 +74,6 @@ $include 'data_prep.gms'
 $include 'data_cal.gms'
 
 
-* starting values for model variables
-*-----------------------------------
-$include 'prep_market.gms'
-
 
 
 * --- Debugging parameters
@@ -72,22 +85,63 @@ parameters
           p_checkDemand(R,*,*)        "checks the calibration of the GL expenditure system"
 ;
 
+Alias (uni1,uni2,uni3,uni4,uni5,uni6,*);
+
+
+
+
 *
 *    --- LOOP on different Armington elasticities (sensitivity analysis)
 *
 
-* Note: we need to bring some parameter definitions outside the loop...
-sets
-    fta_countries(R)   "countries negotiating an FTA" /R1, R2/
-    third_countries(R) "third countries with respect to the FTA"
+
+* Reminder: default for Armington substitution elasticities
+*-----------------------------------
+p_rhoArm2(R,XX) = 5;
+p_rhoArm1(R,XX) = 2;
+
+scalar arm2elas "current value of Armington 2 elasticity" /2/;
+scalar max_arm2elas "max value of Armington 2 elasticity" /10/;
+scalar step_by  "increase in the loop" /1/;
+
+scalar step     "current step in the SA as number" /1/;
+
+$eval nrofsteps max_arm2elas - arm2elas +1
+
+set    SA_loop  "current step in the SA as set" /step1*step%nrofsteps%/;
+
+
+*
+*    --- reporting parameters for the SA
+*
+parameters
+        p_results_tot(SA_loop,*,*,*,*,*) "full reporting parameter"
+        p_trade_diversion_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_bilat_tot(SA_loop,R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_creation_tot(SA_loop,R,XX,*)  "trade creation effects"
+        p_trq_fillrate_tot(SA_loop,R,R,XX,*) "fill rate of the TRQs"
+        p_Armington_elas_tot(SA_loop,R,XX,*)   "Armington elasticities in the SA loops"
 ;
 
-third_countries(R) $ (not fta_countries(R)) = yes;
 
 
+for( arm2elas = arm2elas to max_arm2elas by step_by,
 
 
+* --- revert changes of the scenarios (when working in a loop)
+*     no FTAs in baseline (revert scenario changes)
+ p_doubleZero("R1","R2",XX,"CUR")  = 0;
+ p_doubleZero("R2","R1",XX,"CUR")  = 0;
 
+
+* starting values for model variables
+*-----------------------------------
+$include 'prep_market.gms'
+
+
+* --- set Armington elasticity in the current loop
+ p_rhoArm2(R,XX) = arm2elas;
 
 
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
@@ -96,13 +150,6 @@ third_countries(R) $ (not fta_countries(R)) = yes;
 $include 'calibration.gms'
 
 
-* --- some reporting parameters
-parameters
-        p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
-        p_trade_creation(R,XX,*)  "trade creation effects"
-;
 
 
 
@@ -116,7 +163,7 @@ parameters
 *option iterlim=0;
 solve m_GlobalMarket using mcp;
 *solve m_GlobalMarket_nlp using nlp minimizing v_flipflop;
-
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 * store the result of the test run on 'CAL'
 $batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
@@ -138,6 +185,8 @@ $include 'test_calibration.gms'
 
 * MCP formulation
 solve m_GlobalMarket using mcp;
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
+
 
 * save scenario results on "sim_AVE"
 $batinclude 'save_results.gms' '"SIM_AVE"' 'p_tarAdval'
@@ -237,6 +286,7 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 
 *   ---  calibration test for the model with TRQ instruments
 solve m_GlobalMarket_trq using mcp;
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 
 * store the result of the test run in the p_results parameter
@@ -263,7 +313,12 @@ p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 
 * MCP formulation
 solve m_GlobalMarket_trq using mcp;
-
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
+     if(    (m_GlobalMarket_trq.numinfes ne 0)  or   (m_GlobalMarket_trq.modelstat ne 1),
+      putclose modellog  "*** --- Market model with orth. conditions is nonoptimal in simulation loop Nr. ", step /;
+       putclose modellog "*** --- The value of the Armington1 elasticity: ", p_rhoArm1("R1","X1") /;
+       putclose modellog "*** --- The value of the Armington2 elasticity: ", p_rhoArm2("R1","X1") /;
+             );
 * save scenario results on "sim_sigm"
 $batinclude 'save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
@@ -334,6 +389,7 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 *    --- test run for the orth. cond. representation
 *
 solve m_GlobalMarket_orth using mcp;
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 
 * store the result of the test run on 'CAL'
@@ -355,6 +411,12 @@ p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 
 * MCP formulation
 solve m_GlobalMarket_orth using mcp;
+ if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
+     if(    (m_GlobalMarket_orth.numinfes ne 0)  or   (m_GlobalMarket_orth.modelstat ne 1),
+      putclose modellog  "*** --- Market model with orth. conditions is nonoptimal in simulation loop Nr. ", step /;
+       putclose modellog "*** --- The value of the Armington1 elasticity: ", p_rhoArm1("R1","X1") /;
+       putclose modellog "*** --- The value of the Armington2 elasticity: ", p_rhoArm2("R1","X1") /;
+             );
 
 * save scenario results on "sim_orth"
 $batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
@@ -365,8 +427,54 @@ $batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
 $batinclude 'report_trade_diversion.gms' 'sim_orth'
 
 
-
 * SAVE ALL RESULTS IN A GDX container
 * ====================================
 
 execute_unload 'results.gdx';
+
+
+
+*
+*    --- copy the result of the current run to the big result parameter
+*
+p_results_tot(SA_loop,uni1,uni2,uni3,uni4,uni5) $ [ (ord(SA_loop) eq step)
+                                                     $ p_results(uni1,uni2,uni3,uni4,uni5)]
+                                                = p_results(uni1,uni2,uni3,uni4,uni5);
+
+p_trade_diversion_tot(SA_loop,XX,uni1) $    [ (ord(SA_loop) eq step)
+                                             $  p_trade_diversion(XX,uni1) ]
+                                          =  p_trade_diversion(XX,uni1);
+
+
+
+p_trade_diversion_relative_tot(SA_loop,XX,uni1)  $    [ (ord(SA_loop) eq step)
+                                                    $ p_trade_diversion_relative(XX,uni1) ]
+                                                    = p_trade_diversion_relative(XX,uni1);
+
+
+p_trade_diversion_bilat_tot(SA_loop,R,R1,XX,uni1)  $    [ (ord(SA_loop) eq step)
+                                                       $ p_trade_diversion_bilat(R,R1,XX,uni1) ]
+                                                   =  p_trade_diversion_bilat(R,R1,XX,uni1);
+
+p_trade_creation_tot(SA_loop,R,XX,uni1)   $    [ (ord(SA_loop) eq step)
+                                                $ p_trade_creation(R,XX,uni1) ]
+                                                = p_trade_creation(R,XX,uni1);
+
+
+p_trq_fillrate_tot(SA_loop,R,R1,XX,uni1)   $    [ (ord(SA_loop) eq step)
+                                        $ p_trq_fillrate(R,R1,XX,uni1) ]
+                                         = p_trq_fillrate(R,R1,XX,uni1) ;
+
+
+p_Armington_elas_tot(SA_loop,R,XX,"arm1") $    (ord(SA_loop) eq step)  = p_rhoArm1(R,XX);
+p_Armington_elas_tot(SA_loop,R,XX,"arm2") $    (ord(SA_loop) eq step)  = p_rhoArm2(R,XX);
+
+
+*
+*    --- End of for loop of the SA
+*
+step = step + 1;
+);
+
+execute_unload "SA_results_arm2.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
+                                      p_trade_diversion_bilat_tot, p_trade_creation_tot, p_trq_fillrate_tot, p_Armington_elas_tot;
