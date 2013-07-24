@@ -36,7 +36,7 @@
 * test the calibration of the Armington system
 * --------------------------------------------
 
-parameter p_checkArmington;
+
 
 p_checkArmington(R," ",XX,"domsales")
  =
@@ -47,7 +47,7 @@ p_checkArmington(R," ",XX,"domsales")
                  * [ v_arm1Price.L(R,XX) / v_marketPrice.L(R,XX) ] ** p_rhoArm1(R,XX) };
 
 
-p_checkArmington(R,XX," ","arm2quant")
+p_checkArmington(R," ",XX,"arm2quant")
  =
        data(R,"arm2",XX,"cur") -
               { v_arm1Quant.L(R,XX)
@@ -75,7 +75,7 @@ display "check the calibration of the Armington system", p_checkArmington;
                           * v_prodPrice.L(R,YY1)/v_prodPrice.l(R,"INPE"));
 
 * check prodNQ calibration
-parameter  p_checkProdNQ;
+
 
 p_checkProdNQ(R,XX1) $ DATA(R,"Prod",XX1,"CUR")  =
     v_prodQuant.L(R,XX1)
@@ -94,7 +94,6 @@ display "check the calibraiton of the NQ production functions", p_checkProdNQ;
 * test the calibration of the demand system
 * -----------------------------------------
 
-parameter p_checkDemand;
 
 *  --  these are the X_i's
        p_checkDemand(R,XX1,"Xi_pHead")
@@ -134,4 +133,3 @@ display "check the initialization of the demand system", p_checkDemand;
 
 * store the initialized model on 'bas'
 $batinclude 'save_results.gms' '"BAS"' 'p_tarAdval'
-
