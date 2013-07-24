@@ -7,5 +7,13 @@
 *.gpr
 *.log
 *.~gm
+*.ini
+*.bak
+*.dat
+*.ref
+*.gref
+*.template
+*.inp
+*.sch
 
 
