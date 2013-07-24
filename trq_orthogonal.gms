@@ -4,7 +4,7 @@
 * Author    : mihalyh
 * Version   : 1.0
 * Date      : 24.07.2013 10:28:37
-* Changed   : 24.07.2013 10:35:23
+* Changed   : 24.07.2013 12:34:00
 * Changed by: mihalyh
 * Remarks   :
 $ontext
@@ -85,6 +85,6 @@ model m_GlobalMarket_orth /
 /;
 
 
-
+    m_GlobalMarket_orth.solprint = 0; 
 
 *============================   End Of File   ================================

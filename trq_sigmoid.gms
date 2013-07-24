@@ -4,7 +4,7 @@
 * Author    : mihalyh
 * Version   : 1.0
 * Date      : 24.07.2013 10:26:04
-* Changed   : 24.07.2013 10:34:38
+* Changed   : 24.07.2013 12:33:46
 * Changed by: mihalyh
 * Remarks   :
 $ontext
@@ -83,7 +83,7 @@ model m_GlobalMarket_trq /
 
 /;
 
-
+  m_GlobalMarket_trq.solprint = 0;
 
 
 *============================   End Of File   ================================

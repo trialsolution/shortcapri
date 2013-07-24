@@ -16,6 +16,8 @@ $offlisting
 
 
 file modellog /modellog.txt/;
+put modellog;
+
 
 * The Basic market model
 * ==============================
@@ -101,12 +103,20 @@ p_rhoArm2(R,XX) = 5;
 p_rhoArm1(R,XX) = 2;
 
 scalar arm2elas "current value of Armington 2 elasticity" /2/;
+scalar arm1elas "current value of Armington 1 elasticity" /2/;
+
+scalar min_arm2elas /2/;
+scalar min_arm1elas /2/;
+
 scalar max_arm2elas "max value of Armington 2 elasticity" /10/;
+scalar max_arm1elas "max value of Armington 1 elasticity" /5/;
+
+
 scalar step_by  "increase in the loop" /1/;
 
 scalar step     "current step in the SA as number" /1/;
 
-$eval nrofsteps max_arm2elas - arm2elas +1
+$eval nrofsteps (max_arm2elas - arm2elas +1) * (max_arm1elas - arm1elas +1)
 
 set    SA_loop  "current step in the SA as set" /step1*step%nrofsteps%/;
 
@@ -126,7 +136,8 @@ parameters
 
 
 
-for( arm2elas = arm2elas to max_arm2elas by step_by,
+for( arm2elas = min_arm2elas to max_arm2elas by step_by,
+     for( arm1elas = min_arm1elas to max_arm1elas by step_by,
 
 
 * --- revert changes of the scenarios (when working in a loop)
@@ -142,7 +153,7 @@ $include 'prep_market.gms'
 
 * --- set Armington elasticity in the current loop
  p_rhoArm2(R,XX) = arm2elas;
-
+ p_rhoArm1(R,XX) = arm1elas;
 
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
 * =======================
@@ -471,10 +482,17 @@ p_Armington_elas_tot(SA_loop,R,XX,"arm2") $    (ord(SA_loop) eq step)  = p_rhoAr
 
 
 *
-*    --- End of for loop of the SA
+*    --- End of the first for loop of the SA
 *
 step = step + 1;
 );
+
+*
+*    --- Endo of the second loop of the SA
+*
+);
+
+
 
 execute_unload "SA_results_arm2.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
                                       p_trade_diversion_bilat_tot, p_trade_creation_tot, p_trq_fillrate_tot, p_Armington_elas_tot;

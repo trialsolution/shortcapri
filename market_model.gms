@@ -376,5 +376,5 @@ model m_GlobalMarket_nlp /
 
 /;
 
-
+  m_GlobalMarket.solprint = 0;
 
