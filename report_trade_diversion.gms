@@ -35,12 +35,13 @@ p_trade_diversion_bilat(R1,R2,XX,"%1") $ (fta_countries(R1) $ third_countries(R2
 
 
 *
-*  ---   trade createion = change (increase) of imports (Arm2) in the total demand (Arm1)
+*  ---   trade createion = change (increase) of import shares (Arm2) in the total demand (Arm1)
 *
 p_trade_creation(R,XX,"%1") $ [ fta_countries(R)
                               $ p_results(R,"","arm1",XX,"cal") $ p_results(R,"","arm2",XX,"cal")]
-       = [p_results(R,"","arm2",XX,"%1")  /  p_results(R,"","arm2",XX,"cal")]
-                              / [p_results(R,"","arm1",XX,"%1")  /  p_results(R,"","arm1",XX,"cal")];
+
+       = [p_results(R,"","arm2",XX,"%1")  /  p_results(R,"","arm1",XX,"%1")]
+                              / [p_results(R,"","arm2",XX,"cal")  /  p_results(R,"","arm1",XX,"cal")];
 *
 *    --- TRQ fill rates if TRQ instruments are explicitely modelled
 *
