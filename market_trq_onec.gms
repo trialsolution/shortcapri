@@ -21,7 +21,7 @@ put modellog;
 
 * The Basic market model
 * ==============================
-$include 'market_model_one.gms'
+$include 'include\onec\market_model_one.gms'
 
 
 *
@@ -37,16 +37,16 @@ $include 'market_model_one.gms'
 
 
 * -- some common elements
-$include  "trq_common.gms"
+$include  "include\trq\trq_common.gms"
 
 
 * specific to the sigmoid representation
 *-----------------------------------------------------------------
-$include  "trq_sigmoid.gms"
+$include  "include\trq\trq_sigmoid.gms"
 
 * specific to the orthogonal conditions representation
 *-----------------------------------------------------------------
-$include  "trq_orthogonal.gms"
+$include  "include\trq\trq_orthogonal.gms"
 
 
 * --- Debugging parameters
@@ -74,7 +74,7 @@ third_countries(R) $ (not fta_countries(R)) = yes;
 parameter  p_store(R,*,*,*) "stores the initial point of the demand system";
 
 * --- definition of the GL trimming model
-$include 'calibrate_GL_demand_model.gms'
+$include 'include\onec\calibrate_GL_demand_model.gms'
 
 
 parameter p_elasSup(R,XX1,YY1) "supply elasticities";
@@ -82,7 +82,7 @@ parameter p_elasSup(R,XX1,YY1) "supply elasticities";
 
 * DATA INPUT
 *===========
-$include 'data_prep.gms'
+$include 'include\base\data_prep.gms'
 
 
 
@@ -93,12 +93,12 @@ p_tradeFlows(R,"R1",XX,"Cur") = 0;
 
 * MARKET BALANCING (consolidation, i.e. creating a consistent data set at the calibration point)
 * =============================================================================================
-$include 'data_cal_one.gms'
+$include 'include\onec\data_cal_one.gms'
 
 
 * starting values for model variables
 *-----------------------------------
-$include 'prep_market.gms'
+$include 'include\base\prep_market.gms'
 
 
 
@@ -109,7 +109,7 @@ $include 'prep_market.gms'
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
 * =======================
 
-$include 'calibration.gms'
+$include 'include\base\calibration.gms'
 
 
 * --- some reporting parameters
@@ -135,10 +135,9 @@ solve m_GlobalMarket using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
-$include 'test_calibration.gms'
-
+$include 'include\base\test_calibration.gms'
 
 
 * SIMULATION engine starts here
@@ -156,13 +155,14 @@ $include 'test_calibration.gms'
 solve m_GlobalMarket using mcp;
 
 * save scenario results on "sim_AVE"
-$batinclude 'save_results.gms' '"SIM_AVE"' 'p_tarAdval';
+$batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
 
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_ave';
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_ave';
+
 
 
 
@@ -256,13 +256,14 @@ solve m_GlobalMarket_trq using mcp;
 
 
 * store the result of the test run in the p_results parameter
-$batinclude 'save_results.gms' '"CAL_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 
 p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
+
 
 
 * SCENARIO UNDER TRQ regime
@@ -281,13 +282,13 @@ p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 solve m_GlobalMarket_trq using mcp;
 
 * save scenario results on "sim_sigm"
-$batinclude 'save_results.gms' '"sim_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
 
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_sigm'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_sigm'
 
 
 
@@ -353,9 +354,9 @@ solve m_GlobalMarket_orth using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
@@ -373,16 +374,16 @@ p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 solve m_GlobalMarket_orth using mcp;
 
 * save scenario results on "sim_orth"
-$batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'
 
 *
 *  -- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_orth'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_orth'
 
 
 
 * SAVE ALL RESULTS IN A GDX container
 * ====================================
 
-execute_unload 'results_onec.gdx';
+execute_unload 'results\results_onec.gdx';

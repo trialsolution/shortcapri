@@ -4,7 +4,7 @@
 * Author    : mihalyh
 * Version   : 1.0
 * Date      : 24.07.2013 10:32:53
-* Changed   : 24.07.2013 10:33:10
+* Changed   : 26.07.2013 10:05:16
 * Changed by: mihalyh
 * Remarks   :
 $ontext
@@ -36,7 +36,7 @@ impPrice_trq_(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"CUR") and (not SAMEAS(R,R1))) ..
      v_impPrice(R,R1,XX)/(p_impPrice(R,R1,XX,"CUR")+1)   =E=
 *
 
-       (v_marketPrice(R1,XX))
+       [v_marketPrice(R1,XX) + p_tc(R,R1,XX,"CUR")]
 *       --- add valorem tariff
           *  [ 1. + 0.01 * v_tariff(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]
          /(p_impPrice(R,R1,XX,"CUR")+1);

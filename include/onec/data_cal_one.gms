@@ -67,7 +67,7 @@ $offtext
 * CALIBRATION OF THE DEMAND SYSTEM
 *=================================
 *p_elasDem(R,XX1,YY1) =
-$include 'calibrate_GL_demand_one.gms'
+$include 'include\onec\calibrate_GL_demand_one.gms'
 
 *abort "after first GL calib";
 

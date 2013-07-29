@@ -132,4 +132,4 @@ display "check the initialization of the demand system", p_checkDemand;
 
 
 * store the initialized model on 'bas'
-$batinclude 'save_results.gms' '"BAS"' 'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"BAS"' 'p_tarAdval'
