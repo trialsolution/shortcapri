@@ -18,6 +18,8 @@ $offlisting
 file modellog /modellog.txt/;
 put modellog;
 
+$if not exist .\results  execute  'mkdir results'
+$if not exist .\temp     execute  'mkdir temp'
 
 * The Basic market model
 * ==============================

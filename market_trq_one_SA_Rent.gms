@@ -12,9 +12,10 @@ $title shortcapri
 * Tariffs are exogenous, only ad-valorem (see p_tarAdVal)
 
 
-*$offlisting
-$onlisting
+$offlisting
 
+$if not exist .\results  execute  'mkdir results'
+$if not exist .\temp     execute  'mkdir temp'
 
 file modellog /modellog.txt/;
 put modellog;
@@ -22,7 +23,7 @@ put modellog;
 
 * The Basic market model
 * ==============================
-$include 'market_model_one.gms'
+$include 'include\onec\market_model_one.gms'
 
 
 *
@@ -38,22 +39,22 @@ $include 'market_model_one.gms'
 
 
 * -- some common elements
-$include  "trq_common.gms"
+$include  "include\trq\trq_common.gms"
 
 
 * specific to the sigmoid representation
 *-----------------------------------------------------------------
-$include  "trq_sigmoid.gms"
+$include  "include\trq\trq_sigmoid.gms"
 
 * specific to the orthogonal conditions representation
 *-----------------------------------------------------------------
-$include  "trq_orthogonal.gms"
+$include  "include\trq\trq_orthogonal.gms"
 
 
 *
 *    --- definition of the GL trimming model
 *
-$include  'calibrate_GL_demand_model.gms'
+$include  'include\onec\calibrate_GL_demand_model.gms'
 
 
 parameter  p_elasSup(R,XX1,YY1) "supply elasticities";
@@ -91,7 +92,9 @@ Alias (uni1,uni2,uni3,uni4,uni5,uni6,*);
 
 * DATA INPUT
 *===========
-$include 'data_prep.gms'
+$include 'include\base\data_prep.gms'
+
+
 
 *   --- Put R1 exports to zero (R1 only importer country)
 *p_tradeFlows(R,"R1",XX,"Cur") = 0;
@@ -99,17 +102,22 @@ $include 'data_prep.gms'
 
 * MARKET BALANCING (consolidation, i.e. creating a consistent data set at the calibration point)
 * =============================================================================================
-$include 'data_cal_one.gms'
+$include 'include\onec\data_cal_one.gms'
 
 
 * starting values for model variables
 *-----------------------------------
-$include 'prep_market.gms'
+$include 'include\base\prep_market.gms'
+
+
+
+
+
 
 
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
 * =======================
-$include 'calibration.gms'
+$include 'include\base\calibration.gms'
 
 
 * RUN calibration test with the full system
@@ -122,9 +130,9 @@ solve m_GlobalMarket using mcp;
  if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 
 
@@ -146,13 +154,13 @@ solve m_GlobalMarket using mcp;
 
 
 * save scenario results on "sim_AVE"
-$batinclude 'save_results.gms' '"SIM_AVE"' 'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
 
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_ave'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_ave'
 
 
 *
@@ -208,19 +216,7 @@ for( qpr = min_qpr to max_qpr by step_by,
 *
 
 
-$ontext
-*   --- Get rid of the results of the previous GL trimming
-     option kill=v_GLDemF;
-     option kill=v_GLDemG;
-     option kill=v_GLDemGi;
-     option kill=v_GLparD;
-     option kill=V_B;
-     option kill=v_GLDemGij;
-     option kill=v_obje;
-     option kill=pv_elasDem;
 
-     $include 'data_cal_one.gms'
-$offtext
 
 
 *   --- New price framework
@@ -247,18 +243,18 @@ $offtext
 
 
 
-$include 'CALIBRATE_GL_DEMAND_one.GMS'
+$include 'include\onec\CALIBRATE_GL_DEMAND_one.GMS'
 
 
-$include 'prep_market.gms'
+$include 'include\base\prep_market.gms'
 
-$include 'calibration.gms'
+$include 'include\base\calibration.gms'
 
 *   --- calibration test
 
 solve m_GlobalMarket using mcp;
  if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 
 
@@ -316,9 +312,9 @@ solve m_GlobalMarket_trq using mcp;
 
 
 * store the result of the test run in the p_results parameter
-$batinclude 'save_results.gms' '"CAL_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 
 p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
@@ -345,13 +341,13 @@ solve m_GlobalMarket_trq using mcp;
        putclose modellog "*** --- The value of the supply elasticity: ", p_elasSup("R1","X1","X1") /;
              );
 * save scenario results on "sim_sigm"
-$batinclude 'save_results.gms' '"sim_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
 
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_sigm'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_sigm'
 
 
 
@@ -410,13 +406,12 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 *    --- test run for the orth. cond. representation
 *
 solve m_GlobalMarket_orth using mcp;
- if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
@@ -440,18 +435,19 @@ solve m_GlobalMarket_orth using mcp;
              );
 
 * save scenario results on "sim_orth"
-$batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'
 
 *
 *  -- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_orth'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_orth'
+
 
 
 * SAVE ALL RESULTS IN A GDX container
 * ====================================
 
-execute_unload 'results.gdx';
+execute_unload 'temp\results_currentrun.gdx';
 
 
 
@@ -499,5 +495,5 @@ step = step + 1;
 
 
 
-execute_unload "SA_results_Rent.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
+execute_unload "results\SA_results_Rent.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
                                       p_trade_diversion_bilat_tot, p_trade_creation_tot, p_trq_fillrate_tot, p_qpr_tot;
