@@ -1,6 +1,7 @@
 # Impact on different ARmington elasticities on trade diversion
 
 
+library(ggplot2)
 library(gdxrrw)
 igdx("D:/util/GAMS24.0/")
 
@@ -41,7 +42,7 @@ colnames(diversions)[5]  <- "td"
 tdclean <- merge(scens,diversions)
 
 
-library(ggplot2)
+
 
 # plotting trade diverison vs. arm2 elasticities
 p <- ggplot(subset(tdclean,Arm1==2 & commodity=="X1"), aes(x=ARM2,y=td,color=scenario))
