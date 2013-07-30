@@ -4,7 +4,7 @@
 * Author    : mihalyh
 * Version   : 1.0
 * Date      : 24.07.2013 10:32:53
-* Changed   : 26.07.2013 10:05:16
+* Changed   : 30.07.2013 14:31:19
 * Changed by: mihalyh
 * Remarks   :
 $ontext
@@ -21,7 +21,8 @@ parameter
         p_MFNrate_init(R,R,XX)   "multiplicative parameter to set the MFN rate of the TRQ around the applied rate in the calibration point"
 
 ;
-
+         p_trqBilat(R,R1,XX,"trqnt","cur")  = 0;
+         p_trqBilat(R,R1,XX,"tapref","cur") = 0;
 variable
         v_tariff(R,R,XX)  "applied tariff rate (ad valorem)"
 

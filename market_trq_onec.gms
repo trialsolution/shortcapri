@@ -27,6 +27,15 @@ $include 'include\onec\market_model_one.gms'
 
 
 *
+*    --- parameters for the money metric calculations
+*
+parameters
+          PS_CAL(R,XX1)  "price in calib. point"
+          PS_Y(R,XX1)    "price in simulation"
+          p_welfareRes(R,*,XX1,*)  "Welfare result"
+;
+
+*
 *    ---  Additional equations for introducing TRQ instruments
 *
 
@@ -78,9 +87,12 @@ parameter  p_store(R,*,*,*) "stores the initial point of the demand system";
 * --- definition of the GL trimming model
 $include 'include\onec\calibrate_GL_demand_model.gms'
 
+* --- definition of the NQ trimming model
+$include  'include\base\calibrate_NQ_supply_model.gms'
+
 
 parameter p_elasSup(R,XX1,YY1) "supply elasticities";
-
+parameter p_elasSup_check(R,XX1,YY1);
 
 * DATA INPUT
 *===========
@@ -88,8 +100,9 @@ $include 'include\base\data_prep.gms'
 
 
 
-*   --- Put R1 exports to zero (R1 only importer country)
-p_tradeFlows(R,"R1",XX,"Cur") = 0;
+*!   --- SWITCH: Put R1 exports to zero (R1 only importer country)
+*
+*p_tradeFlows(R,"R1",XX,"Cur") = 0;
 
 
 
@@ -141,6 +154,7 @@ $batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
 $include 'include\base\test_calibration.gms'
 
+$batinclude  'include\base\money_metric.gms' 'CAL'
 
 * SIMULATION engine starts here
 * ========================
@@ -159,6 +173,7 @@ solve m_GlobalMarket using mcp;
 * save scenario results on "sim_AVE"
 $batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
+$batinclude  'include\base\money_metric.gms' 'SIM_AVE'
 
 *
 *   --- reporting
@@ -263,6 +278,8 @@ $batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
 $include 'include\base\test_calibration.gms'
 
 
+$batinclude  'include\base\money_metric.gms' 'CAL_SIGM'
+
 p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
@@ -286,7 +303,7 @@ solve m_GlobalMarket_trq using mcp;
 * save scenario results on "sim_sigm"
 $batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
-
+$batinclude  'include\base\money_metric.gms' 'SIM_SIGM'
 *
 *   --- reporting
 *
@@ -360,6 +377,8 @@ $batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
 $include 'include\base\test_calibration.gms'
 
+$batinclude  'include\base\money_metric.gms' 'CAL_ORTH'
+
 p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
@@ -377,6 +396,8 @@ solve m_GlobalMarket_orth using mcp;
 
 * save scenario results on "sim_orth"
 $batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'
+
+$batinclude  'include\base\money_metric.gms' 'SIM_ORTH'
 
 *
 *  -- reporting

@@ -38,7 +38,20 @@ $offtext
          p_results(R,"","Imports",XX,%1)  = sum(R1 $ (not sameas(R,R1)), v_tradeFlows.L(R,R1,XX));
          p_results(R,"","DSales",XX,%1)   = v_domSales.L(R,XX);
 
+         p_results(R,"","Ince","LEVL",%1) = DATA(R,"INCE","LEVL","CUR");
+         p_results(R,"","INHA","LEVL",%1) = DATA(R,"INHA","LEVL","CUR");
+
 * --- tariffs are either endogenous or exogenous
          p_results(R,R1,"tariff",XX,%1) =   %2(R,R1,XX);
 $ifi %1 == "SIM_AVE"          p_results(R,R1,"tariff",XX,%1) $ p_doubleZero(R,R1,XX,"cur") = 0;
 
+
+*
+*    --- save parameter necessary for the money metric calculation (changes after each calibration of the GL demand system)
+*
+        p_results(R,"","pdGL",XX1,%1)  = p_pdGL(R,XX1,"CUR");
+
+        p_results(R,YY1,"pbGL",ZZ1,%1) = p_pbGL(R,YY1,ZZ1,"CUR");
+
+        p_results(R,"","Hcon","INPE",%1) =  [DATA(R,"INCE","LEVL","CUR") - sum(XX, v_consQuant.L(R,XX) * v_consPrice.L(R,XX))]
+                                            / DATA(R,"CPRI","INPE","CUR");
