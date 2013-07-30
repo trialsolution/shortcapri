@@ -83,6 +83,7 @@ p_rhoArm1(R,XX) = 4;
 *   ---- setting up a system where R3 is a low cost producer, but the FTA will close the door of the FTA members before R3...
 *
 *
+*! --- SWITCH for experimenting with trade diversion (make R3 low cost producer)
 * set the R3 price below the R2 price
 * at the same time make sure that the R2 price is not too high, the import price after the FTA (i.e. without tariffs) is lower than the R3 price increased with tariffs
 * <=>    P_R3 < P_R2 < P_R3 * [1+p_tarAdal(R1,R3]
@@ -92,8 +93,8 @@ p_rhoArm1(R,XX) = 4;
 
 
 * producer prices are lower than market prices with a minimum margin of 10%
-*   DATA(R,"PPRI",XX,"CUR") = min(DATA(R,"PMRK",XX,"CUR")*.9, 900 * uniform(90,100) / 100);
-   DATA(R,"PPRI",XX,"CUR") = 800 * uniform(80,90) / 100;
+   DATA(R,"PPRI",XX,"CUR") = min(DATA(R,"PMRK",XX,"CUR")*.9, 800 * uniform(90,100) / 100);
+*   DATA(R,"PPRI",XX,"CUR") = 800 * uniform(80,90) / 100;
 
 * the producer price margin will be defined according to the above random sample (pv_prodPriceMarg)
 
