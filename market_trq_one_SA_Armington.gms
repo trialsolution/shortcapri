@@ -161,15 +161,18 @@ parameters
         p_trade_diversion_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
         p_trade_diversion_relative_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation_tot(SA_loop,R,XX,*)  "trade creation effects"
-         p_trq_fillrate_tot(SA_loop,R,*,XX1,*) "fill rate of the TRQs"
+        p_trq_fillrate_tot(SA_loop,R,*,XX1,*) "fill rate of the TRQs"
         p_welfareRes_tot(SA_loop,R,*,XX1,*)        "welfare reporting"
         p_Armington_elas_tot(SA_loop,R,XX,*)   "Armington elasticities in the SA loops"
 ;
 
 
+for( arm1elas = min_arm1elas to max_arm1elas by step_by,
 
-for( arm2elas = min_arm2elas to max_arm2elas by step_by,
-     for( arm1elas = min_arm1elas to max_arm1elas by step_by,
+*  ---- smaller arm2 elasticities makes no sense conceptually
+     min_arm2elas = arm1elas;
+         for( arm2elas = min_arm2elas to max_arm2elas by step_by,
+
 
 
 * --- revert changes of the scenarios (when working in a loop)
@@ -215,7 +218,7 @@ $batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
 $include 'include\base\test_calibration.gms'
 
-
+$batinclude  'include\base\money_metric.gms' 'CAL'
 
 * SIMULATION engine starts here
 * ========================
@@ -236,6 +239,7 @@ solve m_GlobalMarket using mcp;
 * save scenario results on "sim_AVE"
 $batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval'
 
+$batinclude  'include\base\money_metric.gms' 'SIM_AVE' 
 
 *
 *   --- reporting
