@@ -27,6 +27,15 @@ $include 'include\onec\market_model_one.gms'
 
 
 *
+*    --- parameters for the money metric calculations
+*
+parameters
+          PS_CAL(R,XX1)  "price in calib. point"
+          PS_Y(R,XX1)    "price in simulation"
+          p_welfareRes(R,*,XX1,*)  "Welfare result"
+;
+
+*
 *    ---  Additional equations for introducing TRQ instruments
 *
 
@@ -56,15 +65,20 @@ $include  "include\trq\trq_orthogonal.gms"
 *
 $include  'include\onec\calibrate_GL_demand_model.gms'
 
+* --- definition of the NQ trimming model
+$include  'include\base\calibrate_NQ_supply_model.gms'
 
-parameter  p_elasSup(R,XX1,YY1) "supply elasticities";
+
+parameter p_elasSup(R,XX1,YY1) "supply elasticities";
+parameter p_elasSup_check(R,XX1,YY1);
+
 
 * --- some reporting parameters related to trade scenario impacts
 parameters
-        p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_diversion(R,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative(R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation(R,XX,*)  "trade creation effects"
+        p_trade_creation_relative(R,XX,*)  "trade creation effects relative to Arm1"
 
 ;
 sets
@@ -96,7 +110,8 @@ $include 'include\base\data_prep.gms'
 
 
 
-*   --- Put R1 exports to zero (R1 only importer country)
+*!   --- SWITCH: Put R1 exports to zero (R1 only importer country)
+*
 *p_tradeFlows(R,"R1",XX,"Cur") = 0;
 
 
@@ -134,8 +149,7 @@ $batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
 $include 'include\base\test_calibration.gms'
 
-
-
+$batinclude  'include\base\money_metric.gms' 'CAL'
 
 * SIMULATION engine starts here
 * ========================
@@ -156,6 +170,7 @@ solve m_GlobalMarket using mcp;
 * save scenario results on "sim_AVE"
 $batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
+$batinclude  'include\base\money_metric.gms' 'SIM_AVE'
 
 *
 *   --- reporting
@@ -189,11 +204,11 @@ set    SA_loop  "current step in the SA as set" /step1*step%nrofsteps%/;
 *
 parameters
         p_results_tot(SA_loop,*,*,*,*,*) "full reporting parameter"
-        p_trade_diversion_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat_tot(SA_loop,R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_diversion_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation_tot(SA_loop,R,XX,*)  "trade creation effects"
-        p_trq_fillrate_tot(SA_loop,R,R,XX,*) "fill rate of the TRQs"
+        p_trq_fillrate_tot(SA_loop,R,*,XX1,*) "fill rate of the TRQs"
+        p_welfareRes_tot(SA_loop,R,*,XX1,*)        "welfare reporting"
         p_qpr_tot(SA_loop,R,XX)   "baseline level of quota premium rates (current SA loops)"
 ;
 
@@ -317,6 +332,8 @@ $batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
 $include 'include\base\test_calibration.gms'
 
 
+$batinclude  'include\base\money_metric.gms' 'CAL_SIGM'
+
 p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
@@ -343,7 +360,7 @@ solve m_GlobalMarket_trq using mcp;
 * save scenario results on "sim_sigm"
 $batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
-
+$batinclude  'include\base\money_metric.gms' 'SIM_SIGM'
 *
 *   --- reporting
 *
@@ -413,6 +430,8 @@ $batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
 $include 'include\base\test_calibration.gms'
 
+$batinclude  'include\base\money_metric.gms' 'CAL_ORTH'
+
 p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
 
@@ -437,6 +456,8 @@ solve m_GlobalMarket_orth using mcp;
 * save scenario results on "sim_orth"
 $batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'
 
+$batinclude  'include\base\money_metric.gms' 'SIM_ORTH'
+
 *
 *  -- reporting
 *
@@ -458,20 +479,16 @@ p_results_tot(SA_loop,uni1,uni2,uni3,uni4,uni5) $ [ (ord(SA_loop) eq step)
                                                      $ p_results(uni1,uni2,uni3,uni4,uni5)]
                                                 = p_results(uni1,uni2,uni3,uni4,uni5);
 
-p_trade_diversion_tot(SA_loop,XX,uni1) $    [ (ord(SA_loop) eq step)
-                                             $  p_trade_diversion(XX,uni1) ]
-                                          =  p_trade_diversion(XX,uni1);
+p_trade_diversion_tot(SA_loop,R,XX,uni1) $    [ (ord(SA_loop) eq step)
+                                             $  p_trade_diversion(R,XX,uni1) ]
+                                          =  p_trade_diversion(R,XX,uni1);
 
 
 
-p_trade_diversion_relative_tot(SA_loop,XX,uni1)  $    [ (ord(SA_loop) eq step)
-                                                    $ p_trade_diversion_relative(XX,uni1) ]
-                                                    = p_trade_diversion_relative(XX,uni1);
+p_trade_diversion_relative_tot(SA_loop,R,XX,uni1)  $    [ (ord(SA_loop) eq step)
+                                                    $ p_trade_diversion_relative(R,XX,uni1) ]
+                                                    = p_trade_diversion_relative(R,XX,uni1);
 
-
-p_trade_diversion_bilat_tot(SA_loop,R,R1,XX,uni1)  $    [ (ord(SA_loop) eq step)
-                                                       $ p_trade_diversion_bilat(R,R1,XX,uni1) ]
-                                                   =  p_trade_diversion_bilat(R,R1,XX,uni1);
 
 p_trade_creation_tot(SA_loop,R,XX,uni1)   $    [ (ord(SA_loop) eq step)
                                                 $ p_trade_creation(R,XX,uni1) ]
@@ -481,6 +498,11 @@ p_trade_creation_tot(SA_loop,R,XX,uni1)   $    [ (ord(SA_loop) eq step)
 p_trq_fillrate_tot(SA_loop,R,R1,XX,uni1)   $    [ (ord(SA_loop) eq step)
                                         $ p_trq_fillrate(R,R1,XX,uni1) ]
                                          = p_trq_fillrate(R,R1,XX,uni1) ;
+
+
+p_welfareRes_tot(SA_loop,R,uni1,XX1,uni2)  $    [ (ord(SA_loop) eq step)
+                                $ p_welfareRes(R,uni1,XX1,uni2) ]
+                               = p_welfareRes(R,uni1,XX1,uni2) ;
 
 
 p_qpr_tot(SA_loop,"R1",XX) $    (ord(SA_loop) eq step)  =  p_tarAdVal("R1","R3",XX);
@@ -496,4 +518,4 @@ step = step + 1;
 
 
 execute_unload "results\SA_results_Rent.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
-                                      p_trade_diversion_bilat_tot, p_trade_creation_tot, p_trq_fillrate_tot, p_qpr_tot;
+                                              p_trade_creation_tot, p_trq_fillrate_tot, p_qpr_tot, p_welfareRes_tot;

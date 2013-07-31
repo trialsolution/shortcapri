@@ -14,6 +14,8 @@ $title shortcapri
 
 $offlisting
 
+$if not exist .\results  execute  'mkdir results'
+$if not exist .\temp     execute  'mkdir temp'
 
 file modellog /modellog.txt/;
 put modellog;
@@ -21,8 +23,17 @@ put modellog;
 
 * The Basic market model
 * ==============================
-$include 'market_model_one.gms'
+$include 'include\onec\market_model_one.gms'
 
+
+*
+*    --- parameters for the money metric calculations
+*
+parameters
+          PS_CAL(R,XX1)  "price in calib. point"
+          PS_Y(R,XX1)    "price in simulation"
+          p_welfareRes(R,*,XX1,*)  "Welfare result"
+;
 
 *
 *    ---  Additional equations for introducing TRQ instruments
@@ -37,27 +48,37 @@ $include 'market_model_one.gms'
 
 
 * -- some common elements
-$include  "trq_common.gms"
+$include  "include\trq\trq_common.gms"
 
 
 * specific to the sigmoid representation
 *-----------------------------------------------------------------
-$include  "trq_sigmoid.gms"
+$include  "include\trq\trq_sigmoid.gms"
 
 * specific to the orthogonal conditions representation
 *-----------------------------------------------------------------
-$include  "trq_orthogonal.gms"
+$include  "include\trq\trq_orthogonal.gms"
 
 
+*
+*    --- definition of the GL trimming model
+*
+$include  'include\onec\calibrate_GL_demand_model.gms'
 
+* --- definition of the NQ trimming model
+$include  'include\base\calibrate_NQ_supply_model.gms'
+
+
+parameter p_elasSup(R,XX1,YY1) "supply elasticities";
+parameter p_elasSup_check(R,XX1,YY1);
 
 
 * --- some reporting parameters related to trade scenario impacts
 parameters
-        p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_diversion(R,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative(R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation(R,XX,*)  "trade creation effects"
+        p_trade_creation_relative(R,XX,*)  "trade creation effects relative to Arm1"
 
 ;
 sets
@@ -71,14 +92,20 @@ third_countries(R) $ (not fta_countries(R)) = yes;
 
 * DATA INPUT
 *===========
-$include 'data_prep.gms'
+$include 'include\base\data_prep.gms'
+
+
+
+*!   --- SWITCH: Put R1 exports to zero (R1 only importer country)
+*
+*p_tradeFlows(R,"R1",XX,"Cur") = 0;
 
 
 * MARKET BALANCING (consolidation, i.e. creating a consistent data set at the calibration point)
 * =============================================================================================
 parameter p_store "stores the initial points for the elasticity trimming";
 
-$include 'data_cal_one.gms'
+$include 'include\onec\data_cal_one.gms'
 
 
 
@@ -98,24 +125,14 @@ Alias (uni1,uni2,uni3,uni4,uni5,uni6,*);
 
 
 *
-*    --- LOOP on different Supply elasticities (sensitivity analysis)
+*    --- LOOP on different Demand elasticities (sensitivity analysis)
 *
 
-
-* Reminder: default elasticities
-*-----------------------------------
-  p_elasSup(R,XX,XX) = .3;
-
-* Hessian calculated with normalized prod. price
-  p_hessNQSupp(R,XX,XX,"CUR") = p_elasSup(R,XX,XX) * DATA(R,"Prod",XX,"Cur")
-                                / (DATA(R,"PPri",XX,"Cur")/DATA(R,"PPri","Inpe","Cur"));
-
-
-scalar elasDem "current value of supply elasticity" ;
+scalar elasDem "current value of demand elasticity";
 
 scalar min_elasDem /-1.5/;
 
-scalar max_elasDem "max value of supply elasticity" /-0.1/;
+scalar max_elasDem "max value of demand elasticity" /-0.1/;
 
 
 scalar step_by  "increase in the loop" /.1/;
@@ -132,11 +149,11 @@ set    SA_loop  "current step in the SA as set" /step1*step%nrofsteps%/;
 *
 parameters
         p_results_tot(SA_loop,*,*,*,*,*) "full reporting parameter"
-        p_trade_diversion_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative_tot(SA_loop,XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat_tot(SA_loop,R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_diversion_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative_tot(SA_loop,R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation_tot(SA_loop,R,XX,*)  "trade creation effects"
-        p_trq_fillrate_tot(SA_loop,R,R,XX,*) "fill rate of the TRQs"
+         p_trq_fillrate_tot(SA_loop,R,*,XX1,*) "fill rate of the TRQs"
+        p_welfareRes_tot(SA_loop,R,*,XX1,*)        "welfare reporting"
         p_Demand_elas_tot(SA_loop,R,XX1,XX1)   "Supply elasticities in the SA loops"
 ;
 
@@ -154,26 +171,13 @@ for( elasDem = min_elasDem to max_elasDem by step_by,
 *   --- set actual value of the own-price elasticities
  p_elasDem("R1",XX,XX) = elasDem;
 
-*   --- re-calibrate the GL exp. system
-*   --- use the previous solution as an initial point and keep the variables at the current levels,
-*
-*   --- keep bounds, etc., only adjust own price elasticity variables
-*
- pv_elasDem.Fx(R,XX,XX) = p_elasDem(R,XX,XX);
- solve GL_demandSystem minimizing v_obje using nlp;
+$include 'include\onec\calibrate_GL_demand_one.gms'
 
-
-*
-*    --- Store results of the GL demand system calibration
-*
-       p_pdGL(R,XX1,"CUR")       = v_GLparD.L(R,XX1) $ p_qx(R,XX1);
-       p_pbGL(R,XX1,YY1,"CUR")   = V_B.l(R,XX1,YY1) $ ( (XX1.pos LE YY1.pos ) and p_qx(R,XX1) and p_qx(R,YY1));
-       p_pbGL(R,XX1,YY1,"CUR") $ ( (XX1.pos gt YY1.pos ) and p_pbGL(R,YY1,XX1,"CUR"))  = p_pbGL(R,YY1,XX1,"CUR");
 
 
 * starting values for model variables
 *-----------------------------------
-$include 'prep_market.gms'
+$include 'include\base\prep_market.gms'
 
 
 
@@ -182,7 +186,7 @@ $include 'prep_market.gms'
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
 * =======================
 
-$include 'calibration.gms'
+$include 'include\base\calibration.gms'
 
 
 
@@ -201,9 +205,9 @@ solve m_GlobalMarket using mcp;
  if ( EXECERROR > 0, abort "internal error in %system.fn%, line %system.incline%");
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL"'  'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"CAL"'  'p_tarAdval'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
 
 
@@ -224,13 +228,13 @@ solve m_GlobalMarket using mcp;
 
 
 * save scenario results on "sim_AVE"
-$batinclude 'save_results.gms' '"SIM_AVE"' 'p_tarAdval'
+$batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval'
 
 
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_ave'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_ave'
 
 
 
@@ -325,10 +329,12 @@ solve m_GlobalMarket_trq using mcp;
 
 
 * store the result of the test run in the p_results parameter
-$batinclude 'save_results.gms' '"CAL_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
 
+
+$batinclude  'include\base\money_metric.gms' 'CAL_SIGM'
 
 p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
@@ -354,13 +360,13 @@ solve m_GlobalMarket_trq using mcp;
        putclose modellog "*** --- The value of the supply elasticity: ", p_elasDem("R1","X1","X1") /;
              );
 * save scenario results on "sim_sigm"
-$batinclude 'save_results.gms' '"sim_sigm"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
 
-
+$batinclude  'include\base\money_metric.gms' 'SIM_SIGM'
 *
 *   --- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_sigm'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_sigm'
 
 
 
@@ -427,9 +433,11 @@ solve m_GlobalMarket_orth using mcp;
 
 
 * store the result of the test run on 'CAL'
-$batinclude 'save_results.gms' '"CAL_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
 
-$include 'test_calibration.gms'
+$include 'include\base\test_calibration.gms'
+
+$batinclude  'include\base\money_metric.gms' 'CAL_ORTH'
 
 p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
                =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
@@ -453,18 +461,21 @@ solve m_GlobalMarket_orth using mcp;
              );
 
 * save scenario results on "sim_orth"
-$batinclude 'save_results.gms' '"sim_orth"' 'v_tariff.L'
+$batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'
+
+$batinclude  'include\base\money_metric.gms' 'SIM_ORTH'
 
 *
 *  -- reporting
 *
-$batinclude 'report_trade_diversion.gms' 'sim_orth'
+$batinclude 'include\trq\report_trade_diversion.gms' 'sim_orth'
+
 
 
 * SAVE ALL RESULTS IN A GDX container
 * ====================================
 
-execute_unload 'results.gdx';
+execute_unload 'temp\results_currentrun.gdx';
 
 
 
@@ -475,20 +486,16 @@ p_results_tot(SA_loop,uni1,uni2,uni3,uni4,uni5) $ [ (ord(SA_loop) eq step)
                                                      $ p_results(uni1,uni2,uni3,uni4,uni5)]
                                                 = p_results(uni1,uni2,uni3,uni4,uni5);
 
-p_trade_diversion_tot(SA_loop,XX,uni1) $    [ (ord(SA_loop) eq step)
-                                             $  p_trade_diversion(XX,uni1) ]
-                                          =  p_trade_diversion(XX,uni1);
+p_trade_diversion_tot(SA_loop,R,XX,uni1) $    [ (ord(SA_loop) eq step)
+                                             $  p_trade_diversion(R,XX,uni1) ]
+                                          =  p_trade_diversion(R,XX,uni1);
 
 
 
-p_trade_diversion_relative_tot(SA_loop,XX,uni1)  $    [ (ord(SA_loop) eq step)
-                                                    $ p_trade_diversion_relative(XX,uni1) ]
-                                                    = p_trade_diversion_relative(XX,uni1);
+p_trade_diversion_relative_tot(SA_loop,R,XX,uni1)  $    [ (ord(SA_loop) eq step)
+                                                    $ p_trade_diversion_relative(R,XX,uni1) ]
+                                                    = p_trade_diversion_relative(R,XX,uni1);
 
-
-p_trade_diversion_bilat_tot(SA_loop,R,R1,XX,uni1)  $    [ (ord(SA_loop) eq step)
-                                                       $ p_trade_diversion_bilat(R,R1,XX,uni1) ]
-                                                   =  p_trade_diversion_bilat(R,R1,XX,uni1);
 
 p_trade_creation_tot(SA_loop,R,XX,uni1)   $    [ (ord(SA_loop) eq step)
                                                 $ p_trade_creation(R,XX,uni1) ]
@@ -500,7 +507,13 @@ p_trq_fillrate_tot(SA_loop,R,R1,XX,uni1)   $    [ (ord(SA_loop) eq step)
                                          = p_trq_fillrate(R,R1,XX,uni1) ;
 
 
-p_Demand_elas_tot(SA_loop,R,XX1,YY1) $    (ord(SA_loop) eq step)  =  pv_elasDem.L(R,XX1,YY1);
+
+p_welfareRes_tot(SA_loop,R,uni1,XX1,uni2)  $    [ (ord(SA_loop) eq step)
+                                $ p_welfareRes(R,uni1,XX1,uni2) ]
+                               = p_welfareRes(R,uni1,XX1,uni2) ;
+
+
+p_Demand_elas_tot(SA_loop,R,XX1,YY1) $    (ord(SA_loop) eq step)  =  p_elasDem(R,XX1,YY1);
 
 
 *
@@ -512,5 +525,5 @@ step = step + 1;
 
 
 
-execute_unload "SA_results_elasDem.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
-                                      p_trade_diversion_bilat_tot, p_trade_creation_tot, p_trq_fillrate_tot, p_Demand_elas_tot;
+execute_unload "results\SA_results_elasDem.gdx", p_results_tot, p_trade_diversion_tot, p_trade_diversion_relative_tot,
+                                                p_trade_creation_tot, p_trq_fillrate_tot, p_Demand_elas_tot, p_welfareRes_tot;
