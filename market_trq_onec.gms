@@ -129,10 +129,10 @@ $include 'include\base\calibration.gms'
 
 * --- some reporting parameters
 parameters
-        p_trade_diversion(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_relative(XX,*) "measure of overall trade diversion in the system"
-        p_trade_diversion_bilat(R,R,XX,*) "diverted trade in the single (bilateral) directionss"
+        p_trade_diversion(R,XX,*) "measure of overall trade diversion in the system"
+        p_trade_diversion_relative(R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation(R,XX,*)  "trade creation effects"
+        p_trade_creation_relative(R,XX,*)  "trade creation effects relative to Arm1"  
 ;
 
 
