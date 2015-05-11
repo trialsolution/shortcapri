@@ -66,10 +66,8 @@ $offtext
 
 * CALIBRATION OF THE DEMAND SYSTEM
 *=================================
-*p_elasDem(R,XX1,YY1) =
 $include 'include\onec\calibrate_GL_demand_one.gms'
 
-*abort "after first GL calib";
 
 * CALIBRATION OF THE SUPPLY SYSTEM
 *================================
@@ -77,16 +75,16 @@ $include 'include\onec\calibrate_GL_demand_one.gms'
 *   --- set cross price elasticities
  p_elasSup(R,XX,XX) = 1.5;
 
-$include  'include\onec\calibrate_NQ_supply_one.gms'
+
 
 
 * As we only have 1 product, we skip the previous calibration process and simply assume a supply elasticity
-
-
+* Alternatively, we could use the supply trimming model defined in 'calibrate_NQ_supply_model.gms'
+*$include  'include\onec\calibrate_NQ_supply_one.gms'
 
 * Hessian calculated with normalized prod. price
-*  p_hessNQSupp(R,XX,XX,"CUR") = p_elasSup(R,XX,XX) * DATA(R,"Prod",XX,"Cur")
-*                                / (DATA(R,"PPri",XX,"Cur")/DATA(R,"PPri","Inpe","Cur"));
+  p_hessNQSupp(R,XX,XX,"CUR") = p_elasSup(R,XX,XX) * DATA(R,"Prod",XX,"Cur")
+                                / (DATA(R,"PPri",XX,"Cur")/DATA(R,"PPri","Inpe","Cur"));
 
 
    p_elasSup_check(R,XX1,YY1) $  DATA(R,"Prod",XX1,"Cur") =  p_hessNQSupp(R,XX1,YY1,"CUR") / DATA(R,"Prod",XX1,"Cur")  * (DATA(R,"PPri",YY1,"Cur")/DATA(R,"PPri","Inpe","Cur"));

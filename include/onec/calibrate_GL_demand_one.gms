@@ -122,7 +122,7 @@ display "budget share in GL trimming", p_budgetShare, p_valueSum;
 $if exist Gl_demandSystem_p.gdx execute_loadpoint "Gl_demandSystem_p.gdx";
 
 solve GL_demandSystem using NLP minimizing v_obje;
-
+if(GL_demandSystem.numinfes ne 0, abort   "problem with trimming the demand system");
 *
 *    --- store the calibrated elasticities in the parameter of the priors
 *
@@ -138,20 +138,19 @@ solve GL_demandSystem using NLP minimizing v_obje;
 
 display "GL system calibrated values:" , p_pbGL, p_pdGL;
 
-execute_unload "after_GL_trimming.gdx";
+*execute_unload "after_GL_trimming.gdx";
 *abort "stopped for debugging.gdx";
 
-*, p_valuesum, v_GLDemF.L, v_GLparD.L, p_qx, p_price;
 
 *  -- the parameters below will also be used in the calibration of the supply functions
-*     So here we need to set them back to zero. But first Let's store them...
-
+*     So here we need to set them back to zero. But first Let's store them on the appropriate parameter...
 
          p_store(R,XX1,"p_qx","demand")         = p_qx(R,XX1);
          p_store(R,XX1,"p_price","demand")      = p_price(R,XX1);
          p_store(R," ","p_valueSum","demand")   = p_valueSum(R);
 
-* .. and then use the option kills
+
+* .. and then use option kills to get rid off unnecessary params. variables
     option kill=p_qx;
     option kill=p_price;
     option kill=p_valueSum;
@@ -163,4 +162,3 @@ execute_unload "after_GL_trimming.gdx";
     option kill=v_GLDemG;
     option kill=v_GLDemGi;
     option kill=v_GLDemGij;
-

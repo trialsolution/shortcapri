@@ -62,6 +62,7 @@ p_checkArmington(R,R1,XX,"tflows") $ (not SAMEAS(R,R1))
                  * p_dpCESTrade(R,R1,XX)
                  * [ v_arm2Price.L(R,XX) / v_impPrice.L(R,R1,XX) ] ** p_rhoArm2(R,XX) ];
 
+option p_checkArmington:2:3:1;
 display "check the calibration of the Armington system", p_checkArmington;
 
 
@@ -127,6 +128,7 @@ display "check the calibraiton of the NQ production functions", p_checkProdNQ;
 
        p_checkDemand(R,XX1,"Gi") = v_GLDemandGis.L(R,XX1) - v_GLDemGi.L(R,XX1);
 
+option p_checkDemand:2:2:1;       
 display "check the initialization of the demand system", p_checkDemand;
 
 

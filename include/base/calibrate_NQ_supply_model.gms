@@ -3,7 +3,7 @@
 * ============
 
 
-* Note that the  calibration uses equations/variables/parameters defined in 'calibrate_demand_elasticities.gms'
+* Note that the  calibration uses equations/variables/parameters defined in the demand system calibration
 * in CAPRI the declarations are in one file
 
 

@@ -31,6 +31,7 @@ parameters
            p_tradeFlows(R,R,XX,basCalCur)          "Physical import flows, destination first"
            p_doubleZero(R,R,XX,basCalCur)          "Double zero aggreements"
            p_impPrice(R,R,XX,basCalCur)            "import price"
+           p_tc(R,R,XX,basCalCur)                  "transportation cost"
 
            p_tarAdVal(R,R,XX)                      "Ad-valorem tariffs"
 
@@ -306,7 +307,7 @@ impPrice_(R,R1,XX) $ (p_tradeFlows(R,R1,XX,"CUR") and (not SAMEAS(R,R1))) ..
      v_impPrice(R,R1,XX)/(p_impPrice(R,R1,XX,"CUR")+1)   =E=
 *
 
-       (v_marketPrice(R1,XX))
+       (v_marketPrice(R1,XX)  + p_tc(R,R1,XX,"CUR")  )
 *       --- add valorem tariff
           *  [ 1. + 0.01 * p_tarAdVal(R,R1,XX) $ ( (NOT p_doubleZero(R,R1,XX,"CUR")) $ (NOT SAMEAS(R,R1)))]
          /(p_impPrice(R,R1,XX,"CUR")+1);

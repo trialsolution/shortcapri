@@ -21,8 +21,8 @@ put modellog;
 $if not exist .\results  execute  'mkdir results'
 $if not exist .\temp     execute  'mkdir temp'
 
-* The Basic market model
-* ==============================
+* The Basic market model (model definition)
+* =========================================
 $include 'include\onec\market_model_one.gms'
 
 
@@ -30,9 +30,9 @@ $include 'include\onec\market_model_one.gms'
 *    --- parameters for the money metric calculations
 *
 parameters
-          PS_CAL(R,XX1)  "price in calib. point"
-          PS_Y(R,XX1)    "price in simulation"
-          p_welfareRes(R,*,XX1,*)  "Welfare result"
+          PS_CAL(R,XX1)              "price in calib. point"
+          PS_Y(R,XX1)                "price in simulation"
+          p_welfareRes(R,*,XX1,*)    "Welfare result"
 ;
 
 *
@@ -44,10 +44,15 @@ parameters
 *  2 ways of doing it:
 * (1) with sigmoid function
 * (2) by orthogonality constraints in MCP
+*
+* The two associated models:
+*  (1) m_GlobalMarket_trq
+*  (2) m_GlobalMarket_orth
 *=============================================
 
 
-* -- some common elements
+* -- some common elements for TRQ representation
+*-----------------------------------------------------------------
 $include  "include\trq\trq_common.gms"
 
 
@@ -65,8 +70,8 @@ parameters
           p_checkPrices(R,XX,*,*)      "differences from actual price levels and the one in the data cube"
           p_checkBalances(R,XX,*,*)    "differences from actual price levels and the one in the data cube"
           p_checkArmington(R,*,XX,*)   "checks the correct initialization of the three Armington equations"
-          p_checkProdNQ(R,XX1)          "checks the calibration of the production functions (derived from NQ profit func.)"
-          p_checkDemand(R,*,*)        "checks the calibration of the GL expenditure system"
+          p_checkProdNQ(R,XX1)         "checks the calibration of the production functions (derived from NQ profit func.)"
+          p_checkDemand(R,*,*)         "checks the calibration of the GL expenditure system"
 ;
 
 *
@@ -75,7 +80,7 @@ parameters
 
 * Note: we need to bring some parameter definitions outside the loop...
 sets
-    fta_countries(R)   "countries negotiating an FTA" /R1, R2/
+    fta_countries(R)   "countries negotiating an FTA"                /R1, R2/
     third_countries(R) "third countries with respect to the FTA"
 ;
 
@@ -91,8 +96,10 @@ $include 'include\onec\calibrate_GL_demand_model.gms'
 $include  'include\base\calibrate_NQ_supply_model.gms'
 
 
-parameter p_elasSup(R,XX1,YY1) "supply elasticities";
-parameter p_elasSup_check(R,XX1,YY1);
+parameter
+         p_elasSup(R,XX1,YY1)       "supply elasticities"
+         p_elasSup_check(R,XX1,YY1) "debugging parameter for supplye elasticites"
+;
 
 * DATA INPUT
 *===========
@@ -117,10 +124,6 @@ $include 'include\base\prep_market.gms'
 
 
 
-
-
-
-
 * CALIBRATION OF ARMINGTON PLUS SHIFT OF SUPPLY FUNCTIONS (WITH TESTS)
 * =======================
 
@@ -132,7 +135,7 @@ parameters
         p_trade_diversion(R,XX,*) "measure of overall trade diversion in the system"
         p_trade_diversion_relative(R,XX,*) "measure of overall trade diversion in the system"
         p_trade_creation(R,XX,*)  "trade creation effects"
-        p_trade_creation_relative(R,XX,*)  "trade creation effects relative to Arm1"  
+        p_trade_creation_relative(R,XX,*)  "trade creation effects relative to Arm1"
 ;
 
 
@@ -146,6 +149,8 @@ parameters
 * ---------
 *option iterlim=0;
 solve m_GlobalMarket using mcp;
+if(m_GlobalMarket.numinfes ne 0, abort "calibration test failed -- infesasibilities");
+if(m_GlobalMarket.numredef ne 0, abort "calibration test failed -- redefs");
 *solve m_GlobalMarket_nlp using nlp minimizing v_flipflop;
 
 
@@ -157,7 +162,7 @@ $include 'include\base\test_calibration.gms'
 $batinclude  'include\base\money_metric.gms' 'CAL'
 
 * SIMULATION engine starts here
-* ========================
+* =============================
 
 
 *## SCENARIO (FTA between R1 and R2, implemented here simply as a double zero agreement)
@@ -169,9 +174,12 @@ $batinclude  'include\base\money_metric.gms' 'CAL'
 
 * MCP formulation
 solve m_GlobalMarket using mcp;
+if(m_GlobalMarket.numinfes ne 0, abort "scenario run failed -- infesasibilities");
+if(m_GlobalMarket.numredef ne 0, abort "scenario run failed -- redefs");
+
 
 * save scenario results on "sim_AVE"
-$batinclude 'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
+$batinclude  'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
 $batinclude  'include\base\money_metric.gms' 'SIM_AVE'
 
@@ -270,7 +278,8 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 
 *   ---  calibration test for the model with TRQ instruments
 solve m_GlobalMarket_trq using mcp;
-
+if(m_GlobalMarket_trq.numinfes ne 0, abort "calibration test with TRQs failed -- infesasibilities");
+if(m_GlobalMarket_trq.numredef ne 0, abort "calibration test with TRQs failed -- redefs");
 
 * store the result of the test run in the p_results parameter
 $batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
@@ -299,6 +308,8 @@ p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 
 * MCP formulation
 solve m_GlobalMarket_trq using mcp;
+if(m_GlobalMarket_trq.numinfes ne 0, abort "simulation run with TRQs failed -- infesasibilities");
+if(m_GlobalMarket_trq.numredef ne 0, abort "simulation run with TRQs failed -- redefs");
 
 * save scenario results on "sim_sigm"
 $batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
@@ -370,7 +381,8 @@ v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1
 *    --- test run for the orth. cond. representation
 *
 solve m_GlobalMarket_orth using mcp;
-
+if(m_GlobalMarket_orth.numinfes ne 0, abort "calibration test with orthogonal constraints failed -- infesasibilities");
+if(m_GlobalMarket_orth.numredef ne 0, abort "calibration test with orthogonal constraints failed -- redefs");
 
 * store the result of the test run on 'CAL'
 $batinclude 'include\base\save_results.gms' '"CAL_orth"' 'v_tariff.L'
@@ -393,6 +405,8 @@ p_trq_fillrate(R,R1,XX,"CAL_orth") $ p_trqBilat(R,R1,XX,"trqnt","cur")
 
 * MCP formulation
 solve m_GlobalMarket_orth using mcp;
+if(m_GlobalMarket_orth.numinfes ne 0, abort "simulatio run with orthogonal constraints failed -- infesasibilities");
+if(m_GlobalMarket_orth.numredef ne 0, abort "simulation run with orthogonal constraints failed -- redefs");
 
 * save scenario results on "sim_orth"
 $batinclude 'include\base\save_results.gms' '"sim_orth"' 'v_tariff.L'

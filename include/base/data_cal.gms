@@ -64,7 +64,7 @@ $offtext
 
 * CALIBRATION OF THE DEMAND SYSTEM
 *=================================
-$include 'calibrate_GL_demand.gms'
+$include 'include\base\calibrate_GL_demand.gms'
 
 
 
@@ -119,4 +119,4 @@ parameter  p_oriElas(R,XX1,XX1)  "starting values for the elasticities";
 
 
 
-$include 'calibrate_NQ_supply.gms'
+$include 'include\base\calibrate_NQ_supply_model.gms'
