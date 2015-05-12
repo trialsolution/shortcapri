@@ -146,10 +146,10 @@ option kill = p_valueSum;
                 (1. + 9. $ (SAMEAS(XX1,YY1))));
 
 
-execute_unload "temp\supply_trimming_before.gdx";
+*execute_unload "temp\supply_trimming_before.gdx";
 
      Solve m_trimElas Using NLP Minimizing v_obje;
-
+     if(m_trimElas.numinfes ne 0, abort "trimming supply elasticities failed");
 
   p_elasSup(R,XX1,YY1) $ [(not sameas(XX1,"INCE")) $ (not sameas(YY1,"INCE"))] = v_ela.L(R,XX1,YY1);
 
@@ -159,7 +159,7 @@ execute_unload "temp\supply_trimming_before.gdx";
   p_hessNQSupp(R,XX1,YY1,"CUR") $ [ (XX1.pos gt YY1.pos) and p_hessNQSupp(R,YY1,XX1,"CUR") ] = p_hessNQSupp(R,YY1,XX1,"CUR");
 
 
-execute_unload "temp\supply_trimming.gdx";
+*execute_unload "temp\supply_trimming.gdx";
 *abort "stopped for debug";
 
 * .. and then use the option kills to clean up
