@@ -33,33 +33,34 @@
       <section id="main_content" class="inner">
         <h3>About</h3>
 
-<p>The <em>shortcapri</em> project is about developing a simple, demonstrative example for the CAPRI market model. The model has been also used for an ongoing research investigating the impacts of different TRQ representations in applied equilibrium models. 
-A conference paper featuring the current state is to be presented on the 135th EAAE Seminar:</p>
+<p>The <em>shortcapri</em> project is about developing a simple, demonstrative example for the CAPRI market model.</p>
 
 
-<p>Himics, Britz: "Trade diversion effects of Preferential Trade Agreements under Tariff Rate Quota regimes"</p>
 
-<p>I aimed at creating the simplest structure possible, making as many simplifications as I could: the current structure has only two products, three regions, no processing and no feeds, etc. But the core of the CAPRI market model is well represented:</p>
+<p>I aimed at creating the simplest structure possible, making as many simplifications as I could. The "bare" market model features only one commodity, three regions, no processing and no feeds, etc. But the core structure of the CAPRI market model is well represented:</p>
 
 <ul>
-<li>similar nested set definitions as in CAPRI</li>
-<li>the same variable/equation/parameter... names</li>
-<li>the same Generalized Leontief demand system</li>
-<li>the same type of supply functions (although without the fudging for negative values)</li>
-<li>the same two stage Armington approach for trade</li>
-<li>similar linkages between market/Armington/consumer/producer prices</li>
-<li>the same approach for calibrating the price elasticities of human demand</li>
-<li>the same approach for calibrating the price elasticities of supply</li>
+<li>Similar nested set definitions as in CAPRI</li>
+<li>The same variable/equation/parameter... names</li>
+<li>Generalized Leontief demand system</li>
+<li>The same type of supply functions (although without the fudging for negative values)</li>
+<li>Two-stage Armington approach for modelling bilateral trade</li>
+<li>Price linkages between market/Armington/consumer/producer prices</li>
+<li>The same trimming/calibration approach for the price elasticities of human demand</li>
+<li>The same trimming/calibration approach for the price elasticities of supply</li>
+  
 </ul><h3>Extra features</h3>
 
-<p>The model is formulated as an MCP, but an equivalent NLP formulation is also given in the code. Remember, we solve a (squared) system of equations using the complementarity conditions. The MCP formulation shows explicitely the equation-variable pairs. The NLP formulation is the one used in CAPRI. </p>
+<p>Unlike real CAPRI, this model is formulated as an Mixed Complementarity Problem (MCP). I believe this formulation highlights the economic intuition behind the market model: the equation system represents first order (KKT) conditions of behavioural optimization problems.
+  But have no fear, an equivalent NLP formulation is also included in the code. Remember, we solve a (squared) system of equations using the complementarity conditions. The MCP formulation shows explicitely the equation-variable pairs. </p>
 
-<p>The code contains lengthy routines for checking the calibration. This might look unnecessary at the first glance but I think it's useful to emphasize which parameters are calibrated and how...</p>
+<p>The code contains lengthy routines for checking the calibration. This might look unnecessary at the first glance but I think it's useful to emphasize which parameters are calibrated and how. And best modelling practice is to always check if the calibration worked out well... </p>
 
 <h3>Installation</h3>
 
 <p>Just download the files by clicking on the zip folder above. You can also browse the code online by clicking on the blue 'Wiew on Github' button above. The main file is <em>market_mcp.gms</em>; that's the one you want to run.</p>
 <p>[Those of you who are familiar with git can clone or fork the repository].</p>
+        <p>Run market_bare_onec.gms with GAMS for the most simple version.</p>        
 
 
 <h3>The content of the package</h3>
@@ -68,16 +69,28 @@ A conference paper featuring the current state is to be presented on the 135th E
 
 <p>The main files:</p>
 <ul>
-  <li>market_mcp.gms: the basic model</li>
+  <li>market_bare_onec.gms: the basic model with one commodity</li>
   <li>market_trq.gms: an exteded version with TRQs</li>
   <li>market_trq_onec: the TRQ version with only one commodity</li>
   <li>market_trq_one_SA...: sensitivity analyses on different aspects, e.g. Armington elasticities, TRQ rents</li>
 </ul>
 
 <h3>Why?</h3>
-<p>I used to analyse hypothetical scenarios with this and similar small models. It can be useful to get an idea what you can expect from CAPRI after implementing a <em>real</em> scenario there. I publish it in the hope that others might find it useful too.</p>
+<p>For training purposes, obviously. But even in 'real life' I used to analyse hypothetical scenarios with this and similar small models. It can be useful to get an idea what you can expect from CAPRI after implementing a <em>real</em> scenario there. I publish it in the hope that others might find it useful too.</p>
+   
+ <h3>Miscellaneous</h3>     
+        <p>The repository contains some additional (extended) model versions which have been used for a research project on the interlinkages between TRQ representations and simulated trade diversion effects in applied equilibrium models. 
+You can safely ignore these model versions. For more information have a look at the conference paper from the 135th EAAE Seminar:</p>       
+        
+        <p>Himics, Britz: "Trade diversion effects of Preferential Trade Agreements under Tariff Rate Quota regimes"</p>
+      
+      
       </section>
-    </div>
+
+    
+    
+    
+   </div>
 
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
