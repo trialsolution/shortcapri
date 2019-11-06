@@ -145,10 +145,16 @@ parameters
 
 * TEST run, (see if solving the model with the initial points gives back the calibration point)
 * ---------
-*option iterlim=0;
+*m_GlobalMarket.iterlim=1;
+*m_GlobalMarket.solprint = 1;
+
 solve m_GlobalMarket using mcp;
 if(m_GlobalMarket.numinfes ne 0, abort "calibration test failed -- infesasibilities");
 if(m_GlobalMarket.numredef ne 0, abort "calibration test failed -- redefs");
+
+*abort "check listing file for infeasibilities";
+
+* alternative NLP solve
 *solve m_GlobalMarket_nlp using nlp minimizing v_flipflop;
 
 
