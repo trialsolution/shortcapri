@@ -120,13 +120,13 @@ display "check the calibraiton of the NQ production functions", p_checkProdNQ;
 
        p_checkDemand(R," ","Y") = p_store(R," ","p_valueSum","demand") - [DATA(R,"Ince","Levl","CUR")/DATA(R,"INHA","LEVL","CUR")];
 
-       p_checkDemand(R,XX1,"Di") =   v_GLparD.L(R,XX1) - p_pdGL(R,XX1,"CUR");
+*       p_checkDemand(R,XX1,"Di") =   v_GLparD.L(R,XX1) - p_pdGL(R,XX1,"CUR");
 
-       p_checkDemand(R," ","F") =  v_GLDemandFS.L(R) - v_GLDemF.L(R);
+*       p_checkDemand(R," ","F") =  v_GLDemandFS.L(R) - v_GLDemF.L(R);
 
-       p_checkDemand(R," ","G") =  v_GLDemandGS.L(R) - v_GLDemG.L(R);
+*       p_checkDemand(R," ","G") =  v_GLDemandGS.L(R) - v_GLDemG.L(R);
 
-       p_checkDemand(R,XX1,"Gi") = v_GLDemandGis.L(R,XX1) - v_GLDemGi.L(R,XX1);
+*       p_checkDemand(R,XX1,"Gi") = v_GLDemandGis.L(R,XX1) - v_GLDemGi.L(R,XX1);
 
 option p_checkDemand:2:2:1;       
 display "check the initialization of the demand system", p_checkDemand;

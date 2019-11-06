@@ -49,12 +49,6 @@ parameters
 
 
 
-*
-*    ---  Extending the basic market model with Tariff Rate Quotas
-*         (only if switched on by the setglobal below)
-
-$setglobal includeTRQs off
-
 
 *=============================================
 * introduce endogenous tariffs under TRQ
@@ -64,16 +58,6 @@ $setglobal includeTRQs off
 * The associated market model:
 *  m_GlobalMarket_trq
 *=============================================
-
-
-* -- some common elements for TRQ representation
-*-----------------------------------------------------------------
-$include  "include\trq\trq_common.gms"
-
-
-* specific to the sigmoid representation
-*-----------------------------------------------------------------
-$include  "include\trq\trq_sigmoid.gms"
 
 
 
@@ -178,6 +162,12 @@ $include 'include\base\test_calibration.gms'
 $batinclude  'include\base\money_metric.gms' 'CAL'
 
 
+
+*  skip simulation with ontext-offtext
+
+$ontext
+
+
 * SIMULATION engine starts here
 * =============================
 
@@ -195,153 +185,19 @@ if(m_GlobalMarket.numinfes ne 0, abort "scenario run failed -- infesasibilities"
 if(m_GlobalMarket.numredef ne 0, abort "scenario run failed -- redefs");
 
 
+*
+*   --- reporting
+*
+
+
 * store scenario results under "sim_AVE"
 $batinclude  'include\base\save_results.gms' '"SIM_AVE"' 'p_tarAdval';
 
 $batinclude  'include\base\money_metric.gms' 'SIM_AVE'
-
-
-*
-*   --- reporting
-*
-$batinclude 'include\trq\report_trade_diversion.gms' 'sim_ave';
-
-
-*
-*  Skip the TRQ part if not needed
-*
-$ifi not %includeTRQs% == on $goto finalReporting
-
-*
-*    ---   TRQs under the sigmoid representation
-*
-
-* CALIBRATION PHASE
-*-----------------------------------------------------------------
-
-*
-*     ----- we assume that the applied tariff rates are the same as in the setup of the original model
-*           => no need for a full re-calibration, only the sigmoid curve needs to be calibrated (see calculation below)
-*
-*     === BUT we check if the model is still calibrated for security reasons...
-
-* --- no FTAs in baseline (revert modifications of the scenario)
- p_doubleZero("R1","R2",XX,"CUR")  = 0;
- p_doubleZero("R2","R1",XX,"CUR")  = 0;
-
-
-* === initialize new variables (at baseline values)
-v_tariff.L(R,R1,XX) = p_tarAdVal(R,R1,XX);
+$offtext
 
 
 
-* === calibration of the TRQs ===
-
-*
-* --- assume a 100% fill rate in the baseline between 'R1' and 'R3';
-*     (we achive this by defining the quota at the observed import level)
-*
-p_trqBilat('R1','R3',XX,"trqnt","cur") =   p_tradeFlows('R1','R3',XX,"Cur") * 1.0;
-
-
-*
-* --- we assume that the applied in the baseline represents a high level of protection <=> close to the MFN rate
-*     we achieve this by defining a premium rate close to the MFN
-*
-
-*
-*   --- first we set the preferential and MFN rates
-*
-
-*
-  p_prefrate_init(R,R1,XX) = 0;
-  p_trqBilat(R,R1,XX,"taPref","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * p_prefrate_init(R,R1,XX);
-
-*
-*  --- because the sigmoid can not take zero values the baseline applied rate can not be equal to either the preferential or the MFN rate
-*      => we set the MFN a little bit above the baseline applied rate
-*
-  p_MFNrate_init(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur") = 2.;
-  p_trqBilat(R,R1,XX,"taMFN","cur") $ p_trqBilat(R,R1,XX,"trqnt","cur") =  v_tariff.L(R,R1,XX) * p_MFNrate_init(R,R1,XX);
-
-
-
-*
-*   --- the quota premium rate is the difference between the applied level and the preferential one
-*
-   p_premium_rate(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
-               = [v_tariff.L(R,R1,XX) -  p_trqBilat(R,R1,XX,"taPref","cur")];
-
-
-*
-*    --- the multiplier is between zero and one
-*
-   v_trq_multiplier.L(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
-                = p_premium_rate(R,R1,XX)
-                 / [  p_trqBilat(R,R1,XX,"taMFN","cur") - p_trqBilat(R,R1,XX,"taPref","cur") ];
-
-*
-*    --- calibration of the sigmoid curves
-*        we shift the sigmoid curve so that the intersection of the sigmoid and the observed trade is at the observed premium rate
-*        [note that the inverse of the sigmoid function is the logit(x) = log(x) - log(1-x)]
-*
-         p_sigmoid_calib(R,R1,XX) $ p_trqBilat(R,R1,XX,"trqnt","cur")
-                 =
-                 { p_trqBilat(R,R1,XX,"trqnt","cur") * [log(v_trq_multiplier.L(R,R1,XX)) - log(1 - v_trq_multiplier.L(R,R1,XX))] / sigmoid_slope }
-                 + p_trqBilat(R,R1,XX,"trqnt","cur") - p_tradeFlows(R,R1,XX,"CUR");
-
-
-*
-*    --- fix those tariffs without TRQ
-*
-v_tariff.FX(R,R1,XX) $ (not p_trqBilat(R,R1,XX,"trqnt","cur")) = p_tarAdVal(R,R1,XX);
-
-
-*   ---  calibration test for extended model (including TRQs)
-solve m_GlobalMarket_trq using mcp;
-if(m_GlobalMarket_trq.numinfes ne 0, abort "calibration test with TRQs failed -- infesasibilities");
-if(m_GlobalMarket_trq.numredef ne 0, abort "calibration test with TRQs failed -- redefs");
-
-* store the result of the test run in the p_results parameter
-$batinclude 'include\base\save_results.gms' '"CAL_sigm"' 'v_tariff.L'
-
-$include 'include\base\test_calibration.gms'
-
-
-$batinclude  'include\base\money_metric.gms' 'CAL_SIGM'
-
-p_trq_fillrate(R,R1,XX,"CAL_sigm") $ p_trqBilat(R,R1,XX,"trqnt","cur")
-               =   v_tradeFlows.L(R,R1,XX) / p_trqBilat(R,R1,XX,"trqnt","cur");
-
-
-
-* SCENARIO with the extended model (including TRQs)
-* =========================
-
-* let's repeat the FTA scneario, but now the basline assumes TRQ regimes!
-* solve the extended model with sigmoid representation for TRQs
-* ------------
-
-
- p_doubleZero("R1","R2",XX,"CUR")  = 1;
- p_doubleZero("R2","R1",XX,"CUR")  = 1;
-
-* MCP formulation
-solve m_GlobalMarket_trq using mcp;
-if(m_GlobalMarket_trq.numinfes ne 0, abort "simulation run with TRQs failed -- infesasibilities");
-if(m_GlobalMarket_trq.numredef ne 0, abort "simulation run with TRQs failed -- redefs");
-
-* save scenario results on "sim_sigm"
-$batinclude 'include\base\save_results.gms' '"sim_sigm"' 'v_tariff.L'
-
-$batinclude  'include\base\money_metric.gms' 'SIM_SIGM'
-*
-*   --- reporting
-*
-$batinclude 'include\trq\report_trade_diversion.gms' 'sim_sigm'
-
-
-$label finalReporting
 
 * SAVE ALL RESULTS IN A GDX container
 * ====================================

@@ -148,6 +148,9 @@ option kill = p_valueSum;
 
 *execute_unload "temp\supply_trimming_before.gdx";
 
+     m_trimElas.solprint = 1;
+*     m_trimElas.iterlim  = 0;
+     
      Solve m_trimElas Using NLP Minimizing v_obje;
      if(m_trimElas.numinfes ne 0, abort "trimming supply elasticities failed");
 
